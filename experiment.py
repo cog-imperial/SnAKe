@@ -7,6 +7,7 @@ from temperature_env import NormalDropletFunctionEnv
 from scipy.spatial import distance_matrix
 import numpy as np
 import sys
+import os
 
 method = str(sys.argv[1])
 function_number = int(float(sys.argv[2]))
@@ -106,5 +107,8 @@ else:
     folder = '/' + method + func.name + '/' + f'/budget{budget}/outputs/'
     file_name = f'run_{run_num}'
 
+os.makedirs(folder_inputs, exist_ok = True)
+os.makedirs(folder_outputs, exist_ok = True)
+
 np.save(folder_inputs + file_name, X)
-np.save(folder_inputs + file_name, np.array(Y))
+np.save(folder_outputs + file_name, np.array(Y))

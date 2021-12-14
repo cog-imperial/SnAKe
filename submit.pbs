@@ -10,4 +10,4 @@ module load anaconda3/personal
 source activate envname
 cd $PBS_O_WORKDIR
 
-python experiment.py EaS func_num run_num 50 0 2
+python experiment.py EaS $func_num $run_num 50 0 2
