@@ -293,7 +293,7 @@ class Perm8D():
         for i in range(1, 1 + 8):
             S2 = 0
             for j in range(1, 1 + 8):
-                S2 += (j**i + self.beta) * ((x[:, j] / j)**i - 1)
+                S2 += (j**i + self.beta) * ((x[:, j-1] / j)**i - 1)
             S1 += S2**2
         return S1
 
@@ -319,7 +319,7 @@ class Perm10D():
         for i in range(1, 1 + 10):
             S2 = 0
             for j in range(1, 1 + 10):
-                S2 += (j**i + self.beta) * ((x[:, j] / j)**i - 1)
+                S2 += (j**i + self.beta) * ((x[:, j-1] / j)**i - 1)
             S1 += S2**2
         return S1
 
