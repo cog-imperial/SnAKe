@@ -7,7 +7,7 @@ j = ${PBS_ARRAY_INDEX}
 ((func_num = j/10))
 
 module load anaconda3/personal
-source activate envname
+source activate EaSenv
 cd $PBS_O_WORKDIR
 
 python experiment.py EaS $func_num $run_num 50 0 2
