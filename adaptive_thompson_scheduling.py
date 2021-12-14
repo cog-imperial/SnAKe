@@ -32,7 +32,7 @@ class AdaptiveThompsonScheduling():
         env: An environment that runs the optimisation.
         
         Optional:
-        initial_temp: The initial temperature of the optimisation. 
+        initial_temp: The initial temperature of the optimisation.
 
         max change: Maximum change allowed in controlled variables. A float or None (default).
 
@@ -552,7 +552,9 @@ class RandomTSP():
     def create_mega_batch(self):
         self.num_of_samples = self.budget + 1
         # create batch uniformly        
-        samples = np.random.uniform(size = (self.num_of_samples, self.dim))
+        # samples = np.random.uniform(size = (self.num_of_samples, self.dim))
+        # create samples using sobol grid
+        samples = sobol_seq.i4_sobol_generate(self.dim, self.num_of_samples)
         self.unique_samples = samples
         self.count_list = list(np.ones(self.num_of_samples))
         # finally define the temperature samples
