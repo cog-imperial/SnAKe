@@ -23,7 +23,7 @@ assert method in ['EaS', 'EI', 'UCB', 'PI', 'Random'], 'Method must be string in
 assert function_number in range(7), \
     'Function must be integer between 0 and 6'
 assert budget in [15, 50, 100, 250], \
-    'Budget must be integer in [50, 100, 250]'
+    'Budget must be integer in [15, 50, 100, 250]'
 assert epsilon in [0, 0.1, 0.25, 1], \
     'Epsilon must be in [0, 0.1, 0.25, 1]'
 assert cost_func in [1, 2, 3], \
@@ -32,6 +32,9 @@ assert cost_func in [1, 2, 3], \
 # Define function name
 functions = [BraninFunction(), Hartmann3D(), Hartmann4D(), Hartmann6D(), Ackley4D(), Perm8D(), Perm10D()]
 func = functions[function_number]
+
+# We start counting from zero, so set budget minus one
+budget = budget - 1
 
 # Define cost function
 if cost_func == 1:
@@ -112,6 +115,9 @@ else:
 # create directories if they exist
 os.makedirs(folder_inputs, exist_ok = True)
 os.makedirs(folder_outputs, exist_ok = True)
+
+print(X.shape[0])
+print(np.array(Y).shape[0])
 
 np.save(folder_inputs + file_name, X)
 np.save(folder_outputs + file_name, np.array(Y))
