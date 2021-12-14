@@ -100,16 +100,16 @@ print(X)
 print(np.array(Y))
 
 if method == 'EaS':
-    folder_inputs = 'experiment_results/' + f'{epsilon}-EaS/' + func.name + f'/budget{budget}/' + cost_name + '/inputs/'
-    folder_outputs = 'experiment_results/' + f'{epsilon}-EaS/' + func.name + f'/budget{budget}/' + cost_name + '/outputs/'
+    folder_inputs = 'experiment_results/' + f'{epsilon}-EaS/' + func.name + f'/budget{budget + 1}/' + cost_name + '/inputs/'
+    folder_outputs = 'experiment_results/' + f'{epsilon}-EaS/' + func.name + f'/budget{budget + 1}/' + cost_name + '/outputs/'
     file_name = f'run_{run_num}'
 elif method == 'Random':
-    folder_inputs = 'experiment_results/' + f'Random/' + func.name + f'/budget{budget}/' + cost_name + '/inputs/'
-    folder_outputs = 'experiment_results/' + f'Random/' + func.name + f'/budget{budget}/' + cost_name + '/outputs/'
+    folder_inputs = 'experiment_results/' + f'Random/' + func.name + f'/budget{budget + 1}/' + cost_name + '/inputs/'
+    folder_outputs = 'experiment_results/' + f'Random/' + func.name + f'/budget{budget + 1}/' + cost_name + '/outputs/'
     file_name = f'run_{run_num}'
 else:
-    folder =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget}/inputs/'
-    folder =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget}/outputs/'
+    folder =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget + 1}/inputs/'
+    folder =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget + 1}/outputs/'
     file_name = f'run_{run_num}'
 
 # create directories if they exist
