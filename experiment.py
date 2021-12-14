@@ -9,7 +9,7 @@ import numpy as np
 import sys
 
 method = str(sys.argv[1])
-function_number = int(sys.argv[2])
+function_number = int(float(sys.argv[2]))
 run_num = int(sys.argv[3])
 budget = int(sys.argv[4])
 epsilon = float(sys.argv[5])
@@ -106,5 +106,5 @@ else:
     folder = '/' + method + func.name + '/' + f'/budget{budget}/outputs/'
     file_name = f'run_{run_num}'
 
-#np.save(folder_inputs + file_name, X)
-#np.save(folder_inputs + file_name, np.array(Y))
+np.save(folder_inputs + file_name, X)
+np.save(folder_inputs + file_name, np.array(Y))
