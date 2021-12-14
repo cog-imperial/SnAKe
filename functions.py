@@ -296,7 +296,7 @@ class Perm8D():
             for j in range(1, 1 + 8):
                 S2 += (j**i + self.beta) * ((x[:, j-1] / j)**i - 1)
             S1 += S2**2
-        return np.maximum(- S1 / 10**13, -20)
+        return - S1 / 10**13
 
 class Perm10D():
     def __init__(self, t_dim = 10):
@@ -325,7 +325,7 @@ class Perm10D():
             for j in range(1, 1 + 10):
                 S2 += (j**i + self.beta) * ((x[:, j-1] / j)**i - 1)
             S1 += S2**2
-        return np.maximum(- S1 / (10 ** 19), -20)
+        return - S1 / (10 ** 20)
 
 class Ackley4D():
     def __init__(self, t_dim = 4):
