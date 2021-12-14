@@ -289,13 +289,14 @@ class Perm8D():
         pass
     
     def query_function(self, x):
+        x = (x - 0.5) * 16
         S1 = 0
         for i in range(1, 1 + 8):
             S2 = 0
             for j in range(1, 1 + 8):
                 S2 += (j**i + self.beta) * ((x[:, j-1] / j)**i - 1)
             S1 += S2**2
-        return S1
+        return np.maximum(- S1 / 10**13, -20)
 
 class Perm10D():
     def __init__(self, t_dim = 10):
@@ -309,19 +310,22 @@ class Perm10D():
 
         self.name = 'Perm10D'
 
-        self.beta = 0.5
+        self.beta = 10
 
     def draw_new_function(self):
         pass
     
     def query_function(self, x):
+
+        x = (x - 0.5) * 20
+
         S1 = 0
         for i in range(1, 1 + 10):
             S2 = 0
             for j in range(1, 1 + 10):
                 S2 += (j**i + self.beta) * ((x[:, j-1] / j)**i - 1)
             S1 += S2**2
-        return S1
+        return np.maximum(- S1 / (10 ** 19), -20)
 
 class Ackley4D():
     def __init__(self, t_dim = 4):
@@ -420,6 +424,6 @@ def find_optimum(func, n_starts = 25, n_epochs = 100):
     return best_input, best_eval
 
 if __name__ == '__main__':
-    func = Ackley4D()
+    func = Perm8D()
     best_input, best_eval = find_optimum(func, n_starts = 100000, n_epochs = 1000)
     print(float(best_eval.detach()))
