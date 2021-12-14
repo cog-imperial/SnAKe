@@ -16,14 +16,16 @@ budget = int(sys.argv[4])
 epsilon = float(sys.argv[5])
 cost_func = int(sys.argv[6])
 
+print(method, function_number, run_num, budget, epsilon, cost_func)
+
 # Make sure problem is well defined
 assert method in ['EaS', 'EI', 'UCB', 'PI', 'Random'], 'Method must be string in [EaS, EI, UCB, PI, Random]'
 assert function_number in range(7), \
     'Function must be integer between 0 and 6'
-assert budget in [50, 100, 250], \
+assert budget in [15, 50, 100, 250], \
     'Budget must be integer in [50, 100, 250]'
-assert epsilon in [0, 0.1, 0.25, 1, 2], \
-    'Epsilon must be in [0, 0.1, 0.25, 1, 2]'
+assert epsilon in [0, 0.1, 0.25, 1], \
+    'Epsilon must be in [0, 0.1, 0.25, 1]'
 assert cost_func in [1, 2, 3], \
     'Cost function must be integer in [1, 2, 3] (where 3 corresponds to infinity norm)'
 
@@ -95,18 +97,19 @@ print(X)
 print(np.array(Y))
 
 if method == 'EaS':
-    folder_inputs = f'/{epsilon}-EaS/' + func.name + f'/budget{budget}/' + cost_name + '/inputs/'
-    folder_outputs = f'/{epsilon}-EaS/' + func.name + f'/budget{budget}/' + cost_name + '/outputs/'
+    folder_inputs = 'experiment_results/' + f'{epsilon}-EaS/' + func.name + f'/budget{budget}/' + cost_name + '/inputs/'
+    folder_outputs = 'experiment_results/' + f'{epsilon}-EaS/' + func.name + f'/budget{budget}/' + cost_name + '/outputs/'
     file_name = f'run_{run_num}'
 elif method == 'Random':
-    folder_inputs = f'/Random/' + func.name + f'/budget{budget}/' + cost_name + '/inputs/'
-    folder_outputs = f'/Random/' + func.name + f'/budget{budget}/' + cost_name + '/outputs/'
+    folder_inputs = 'experiment_results/' + f'Random/' + func.name + f'/budget{budget}/' + cost_name + '/inputs/'
+    folder_outputs = 'experiment_results/' + f'Random/' + func.name + f'/budget{budget}/' + cost_name + '/outputs/'
     file_name = f'run_{run_num}'
 else:
-    folder = '/' + method + func.name + '/' + f'/budget{budget}/inputs/'
-    folder = '/' + method + func.name + '/' + f'/budget{budget}/outputs/'
+    folder =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget}/inputs/'
+    folder =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget}/outputs/'
     file_name = f'run_{run_num}'
 
+# create directories if they exist
 os.makedirs(folder_inputs, exist_ok = True)
 os.makedirs(folder_outputs, exist_ok = True)
 
