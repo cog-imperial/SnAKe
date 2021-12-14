@@ -45,14 +45,12 @@ matplotlib==3.5.0
 matplotlib-inline==0.1.3
 mistune==0.8.4
 mkl-fft==1.3.1
-mkl-random @ file:///opt/concourse/worker/volumes/live/f196a661-8e33-4aac-63bc-efb2ff50e035/volume/mkl_random_1626186080069/work
 mkl-service==2.4.0
 mpmath==1.2.1
 nbclient==0.5.9
 nbconvert==6.3.0
 nbformat==5.1.3
 nest-asyncio==1.5.4
-networkx @ file:///tmp/build/80754af9/networkx_1633639043937/work
 nose==1.3.7
 notebook==6.4.6
 numba==0.54.1
@@ -86,7 +84,6 @@ scikit-learn==0.24.2
 scipy==1.7.3
 Send2Trash==1.8.0
 setuptools-scm==6.3.2
-six @ file:///tmp/build/80754af9/six_1623709665295/work
 skorch==0.9.0
 sobol-seq==0.2.0
 SQCommon==0.3.2
