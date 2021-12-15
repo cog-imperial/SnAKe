@@ -271,6 +271,36 @@ class Hartmann6D():
             S1 += self.alpha[i] * np.exp(-S2)
         return S1
 
+class Michalewicz2D():
+    # taken from website: https://www.sfu.ca/~ssurjano/michal.html
+    def __init__(self, t_dim = 2):
+        self.t_dim = t_dim
+        if self.t_dim == 2:
+            self.x_dim = None
+        else:
+            self.x_dim = 2 - self.t_dim
+        # calculated below
+        self.optimum = 0.6754469275474548
+
+        self.name = 'Michaelwicz2D'
+
+        self.m = 10
+
+    def draw_new_function(self):
+        pass
+    
+    def query_function(self, x):
+        x = x * np.pi
+        S1 = np.sin(x[:, 0]) * (np.sin(x[:, 0] / np.pi))**(2*self.m)
+        S2 = np.sin(x[:, 1]) * (np.sin(2 * x[:, 1] / np.pi))**(2*self.m)
+        return S1 + S2
+    
+    def query_function_torch(self, x):
+        x = x * 4
+        S1 = torch.sin(x[:, 0]) * (torch.sin(x[:, 0] / np.pi))**(2*self.m)
+        S2 = torch.sin(x[:, 1]) * (torch.sin(2 * x[:, 1] / np.pi))**(2*self.m)
+        return S1 + S2
+
 class Perm8D():
     def __init__(self, t_dim = 8):
         self.t_dim = t_dim
@@ -424,6 +454,6 @@ def find_optimum(func, n_starts = 25, n_epochs = 100):
     return best_input, best_eval
 
 if __name__ == '__main__':
-    func = Perm8D()
+    func = Michalewicz2D()
     best_input, best_eval = find_optimum(func, n_starts = 100000, n_epochs = 1000)
     print(float(best_eval.detach()))
