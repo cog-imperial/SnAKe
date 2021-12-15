@@ -98,7 +98,7 @@ class BoTorchGP():
                 print('Setting Constraints...')
                 print(f'lengthscale lb {self.lengthscale_lb} : lengthscale ub {self.lengthscale_ub}')
                 print(f'outputscale lb {self.outputscale_lb} : outputscale ub {self.outputscale_ub}')
-                print(f'mean constant lb {self.mean_constant_lb} : mean constant ub {self.lengthscale_ub}')
+                print(f'mean constant lb {self.mean_constant_lb} : mean constant ub {self.mean_constant_ub}')
             # for lengthscale
             prior_lengthscale = SmoothedBoxPrior(self.lengthscale_lb, self.lengthscale_ub, 0.001)
             self.model.covar_module.base_kernel.register_prior('Smoothed Box Prior', prior_lengthscale, "lengthscale")
