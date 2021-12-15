@@ -144,7 +144,7 @@ class BoTorchGP():
         if hyperparams == None:
             hypers = {
                 'likelihood.noise_covar.noise': torch.tensor(self.noise),
-                'covar_module.base_kernel.lengthscale': torch.tensor(self.lengthscale),
+                'covar_module.base_kernel.lengthscale': self.lengthscale,
                 'covar_module.outputscale': torch.tensor(self.outputscale),
                 'mean_module.constant': torch.tensor(self.mean_constant)
             }
