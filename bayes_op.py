@@ -51,8 +51,8 @@ class UCBwLP():
 
     def set_hyperparams(self, constant = None, lengthscale = None, noise = None, mean_constant = None, constraints = False):
         if constant == None:
-            self.constant = 0.5
-            self.length_scale = 0.1
+            self.constant = 0.6
+            self.length_scale = torch.tensor([0.15] * self.x_dim)
             self.noise = 1e-4
             self.mean_constant = 0
         
@@ -74,7 +74,7 @@ class UCBwLP():
         self.X = []
         self.Y = []
         # define model
-        self.model = BoTorchGP()
+        self.model = BoTorchGP(lengthscale_dim = self.dim)
         # current temperature
         self.current_temp = self.initial_temp
         # budget
