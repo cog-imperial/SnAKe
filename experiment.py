@@ -9,19 +9,19 @@ import numpy as np
 import sys
 import os
 
-method = 'EaS'
-function_number = 6
-run_num = 10
-budget = 50
-epsilon = 0
-cost_func = 2
+#method = 'EaS'
+#function_number = 6
+#run_num = 10
+#budget = 50
+#epsilon = 0
+#cost_func = 2
 
-#method = str(sys.argv[1])
-#function_number = int(float(sys.argv[2]))
-#budget = int(sys.argv[4])
-##run_num = int(sys.argv[3])
-#epsilon = float(sys.argv[5])
-#cost_func = int(sys.argv[6])
+method = str(sys.argv[1])
+function_number = int(float(sys.argv[2]))
+budget = int(sys.argv[4])
+run_num = int(sys.argv[3])
+epsilon = float(sys.argv[5])
+cost_func = int(sys.argv[6])
 
 print(method, function_number, run_num, budget, epsilon, cost_func)
 
