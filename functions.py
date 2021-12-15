@@ -387,7 +387,7 @@ class SnAr():
 
         conditions = DataSet(values)
         experiments = self.snar_bench.run_experiments(conditions, computation_time = False)
-        return experiments['sty'][0] / 10000
+        return experiments['sty'][0] / 10000 - experiments['e_factor'][0] / 5
 
 def find_optimum(func, n_starts = 25, n_epochs = 100):
     # find dimension
