@@ -82,7 +82,7 @@ class BoTorchGP():
         self.lengthscale_ub = 2 * init_lengthscale
         self.lengthscale_lb = init_lengthscale / 2
         # define mean_constant bounds
-        self.mean_constant_ub = init_mean_constant + init_outputscale
+        self.mean_constant_ub = init_mean_constant + 0.25 * init_outputscale
         self.mean_constant_lb = init_mean_constant - init_outputscale
         # define outputscale bounds
         self.outputscale_ub = 3 * init_outputscale
