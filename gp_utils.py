@@ -48,10 +48,11 @@ class SklearnGP():
         return self.model.sample_y(X, n_samples = n_samples, random_state = self.sample_int)
 
 class BoTorchGP():
-    def __init__(self, kernel = None):
+    def __init__(self, kernel = None, lengthscale_dim = None):
         if kernel == None:
-            self.kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+            self.kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims = lengthscale_dim))
         self.constraints_set = False
+        self.lengthscale_dim = lengthscale_dim
         
     def fit_model(self, train_x, train_y, train_hyperparams = False, previous_hyperparams = None):
         # transform data to tensors
@@ -68,7 +69,7 @@ class BoTorchGP():
 
         if previous_hyperparams is not None:
             self.outputscale = float(previous_hyperparams[0])
-            self.lengthscale = float(previous_hyperparams[1])
+            self.lengthscale = previous_hyperparams[1].detach()
             self.noise = float(previous_hyperparams[2])
             self.mean_constant = float(previous_hyperparams[3])
             self.set_hyperparams()
@@ -127,14 +128,14 @@ class BoTorchGP():
                 print(
                     f"Epoch {epoch+1:>3}/{num_of_epochs} - Loss: {loss.item():>4.3f} "
                     f"outputscale: {self.model.covar_module.outputscale.item():4.3f} "
-                    f"lengthscale: {self.model.covar_module.base_kernel.lengthscale.item():>4.3f} " 
+                    f"lengthscale: {self.model.covar_module.base_kernel.lengthscale.detach():>4.3f} " 
                     f"noise: {self.model.likelihood.noise.item():>4.3f} " 
                     f"mean constant: {self.model.mean_module.constant.item():>4.3f}"
          )
     
     def current_hyperparams(self):
         noise = self.model.likelihood.noise.item()
-        lengthscale = self.model.covar_module.base_kernel.lengthscale.item()
+        lengthscale = self.model.covar_module.base_kernel.lengthscale.detach()
         outputscale = self.model.covar_module.outputscale.item()
         mean_constant = self.model.mean_module.constant.item()
         return (outputscale, lengthscale, noise, mean_constant)
@@ -150,7 +151,7 @@ class BoTorchGP():
         else:
             hypers = {
                 'likelihood.noise_covar.noise': torch.tensor(hyperparams[2]).float(),
-                'covar_module.base_kernel.lengthscale': torch.tensor(hyperparams[1]).float(),
+                'covar_module.base_kernel.lengthscale': hyperparams[1],
                 'covar_module.outputscale': torch.tensor(hyperparams[0]).float(),
                 'mean_module.constant': torch.tensor(hyperparams[3]).float()
             }
