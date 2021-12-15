@@ -34,7 +34,7 @@ class EfficientThompsonSampler():
         self.num_of_epochs = 10 * self.x_dim
         # obtain the kernel parameters
         self.sigma = self.model.model.likelihood.noise.item()
-        self.lengthscale = self.model.model.covar_module.base_kernel.lengthscale.item()
+        self.lengthscale = self.model.model.covar_module.base_kernel.lengthscale.detach()
         self.outputscale = self.model.model.covar_module.outputscale.item()
         # obtain the kernel 
         self.kernel = self.model.model.covar_module
