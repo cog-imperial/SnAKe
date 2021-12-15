@@ -105,7 +105,7 @@ class AdaptiveThompsonScheduling():
         # initial gp hyperparams
         self.set_hyperparams()
         # define model
-        self.model = BoTorchGP()
+        self.model = BoTorchGP(lengthscale_dim = self.dim)
         # try sobol sequences
         self.n_global = 100
         self.n_local = 25
