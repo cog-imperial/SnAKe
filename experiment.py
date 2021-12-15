@@ -1,6 +1,6 @@
 import torch
 from gp_utils import BoTorchGP
-from functions import BraninFunction, Hartmann6D, Hartmann4D, Hartmann3D, Ackley4D, Perm8D, Perm10D
+from functions import BraninFunction, Hartmann6D, Hartmann4D, Hartmann3D, Ackley4D, Michalewicz2D, Perm10D
 from adaptive_thompson_scheduling import AdaptiveThompsonScheduling, RandomTSP
 from bayes_op import UCBwLP, oneExpectedImprovement, oneProbabilityOfImprovement
 from temperature_env import NormalDropletFunctionEnv
@@ -30,7 +30,7 @@ assert cost_func in [1, 2, 3], \
     'Cost function must be integer in [1, 2, 3] (where 3 corresponds to infinity norm)'
 
 # Define function name
-functions = [BraninFunction(), Hartmann3D(), Hartmann4D(), Hartmann6D(), Ackley4D(), Perm8D(), Perm10D()]
+functions = [BraninFunction(), Hartmann3D(), Hartmann4D(), Hartmann6D(), Ackley4D(), Michalewicz2D(), Perm10D()]
 func = functions[function_number]
 
 # We start counting from zero, so set budget minus one
