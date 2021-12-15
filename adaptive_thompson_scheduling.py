@@ -14,6 +14,7 @@ import sobol_seq
 from itertools import chain
 from bayes_op import UCBwLP
 from sampling import EfficientThompsonSampler
+import torch
 import time
 
 class AdaptiveThompsonScheduling():
@@ -129,7 +130,7 @@ class AdaptiveThompsonScheduling():
     def set_hyperparams(self, constant = None, lengthscale = None, noise = None, mean_constant = None, constraints = False):
         if constant == None:
             self.constant = 0.6
-            self.length_scale = 0.15
+            self.length_scale = torch.tensor([0.15] * self.x_dim)
             self.noise = 1e-4
             self.mean_constant = 0
         
