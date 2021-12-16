@@ -115,8 +115,8 @@ elif method == 'Random':
     folder_outputs = 'experiment_results/' + f'Random/' + func.name + f'/budget{budget + 1}/' + cost_name + '/outputs/'
     file_name = f'run_{run_num}'
 else:
-    folder =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget + 1}/inputs/'
-    folder =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget + 1}/outputs/'
+    folder_inputs =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget + 1}/inputs/'
+    folder_outputs =  'experiment_results/' + method + '/' + func.name + '/' + f'/budget{budget + 1}/outputs/'
     file_name = f'run_{run_num}'
 
 # create directories if they exist
