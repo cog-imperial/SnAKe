@@ -1,8 +1,8 @@
 import torch
 from gp_utils import BoTorchGP
-from functions import BraninFunction, Hartmann6D, Hartmann4D, Hartmann3D, Ackley4D, Michalewicz2D, Perm10D
+from functions import Hartmann3D, Hartmann4D, Hartmann6D
 from adaptive_thompson_scheduling import AdaptiveThompsonScheduling, RandomTSP
-from bayes_op import UCBwLP, oneExpectedImprovement, oneProbabilityOfImprovement
+from bayes_op import UCBwLP, ThompsonSampling
 from temperature_env import NormalDropletFunctionEnv
 from scipy.spatial import distance_matrix
 import numpy as np
@@ -18,8 +18,8 @@ import os
 
 method = str(sys.argv[1])
 function_number = int(float(sys.argv[2]))
-budget = int(sys.argv[4])
 run_num = int(sys.argv[3])
+budget = int(sys.argv[4])
 epsilon = float(sys.argv[5])
 cost_func = int(sys.argv[6])
 time_delay = int(sys.argv[7])
@@ -27,7 +27,7 @@ time_delay = int(sys.argv[7])
 print(method, function_number, run_num, budget, epsilon, cost_func, time_delay)
 
 # Make sure problem is well defined
-assert method in ['EaS', 'EIwLP', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, EIwLP, UCBwLP, TS, Random]'
+assert method in ['EaS', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
 assert function_number in range(7), \
     'Function must be integer between 0 and 2'
 assert budget in [100, 250], \
@@ -91,12 +91,10 @@ env = NormalDropletFunctionEnv(func, budget, max_batch_size = time_delay)
 if method == 'EaS':
     mod = AdaptiveThompsonScheduling(env, merge_method = 'e-Point Deletion', merge_constant = epsilon, cost_function = cost_function, initial_temp = initial_temp, \
         hp_update_frequency = 25)
-elif method == 'EIwLP':
-    mod = EIwLP(env, initial_temp = initial_temp, hp_update_frequency = 25)
 elif method == 'UCBwLP':
     mod = UCBwLP(env, initial_temp = initial_temp, hp_update_frequency = 25)
-elif method == 'PI':
-    mod = AsyncThompsonSampling(env, initial_temp = initial_temp, hp_update_frequency = 25)
+elif method == 'TS':
+    mod = ThompsonSampling(env, initial_temp = initial_temp, hp_update_frequency = 25)
 elif method == 'Random':
     mod = RandomTSP(env, initial_temp = initial_temp)
 
