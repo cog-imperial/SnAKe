@@ -12,7 +12,7 @@ from scipy.spatial import distance_matrix
 from scipy.linalg import norm
 import sobol_seq
 from itertools import chain
-from bayes_op import UCBwLP
+from bayes_op import UCBwLP, ThompsonSampling
 from sampling import EfficientThompsonSampler
 import torch
 import time
@@ -687,7 +687,7 @@ if __name__ == '__main__':
         fig, ax = plt.subplots(nrows = 2, ncols = 3, gridspec_kw={'height_ratios': [6, 3], 'width_ratios': [3, 6, 3]})
         fig.set_figheight(6)
         fig.set_figwidth(8 * len(max_change_list))
-        title = f'Budget = {budget} : Time delay = {max_batch_size - 1}$'
+        title = f'Budget = {budget} : Time delay = {max_batch_size}'
         fig.suptitle(title)
 
         for i in range(0, len(max_change_list)):
@@ -696,9 +696,9 @@ if __name__ == '__main__':
             initial_temp = np.array([0.5, 0.5]).reshape(1, -1)
             func = TwoDSinCosine(random=True)
             env = NormalDropletFunctionEnv(func, budget = budget, max_batch_size = max_batch_size)
-            model = UCBwLP(env, initial_temp = initial_temp)
+            model = ThompsonSampling(env)
             #model = AdaptiveThompsonScheduling(env, max_change = max_change, initial_temp = initial_temp)
-            X, Y = model.run_optim()
+            X, Y = model.run_optim(verbose = True)
 
             #model.reset_model(initial_constant = 0.01)
             #Xo, Yo = model.run_optim()
@@ -764,7 +764,7 @@ if __name__ == '__main__':
         func = BraninFunction()
         env = NormalDropletFunctionEnv(func, budget, max_batch_size)
         model = UCBwLP(env)
-        X, Y = model.run_optim()
+        X, Y = model.run_optim(verbose = True)
 
         contour_plot = ax.contourf(x_grid, y_grid, z_grid, levels = 100)
         fig.colorbar(contour_plot, ax = ax)
