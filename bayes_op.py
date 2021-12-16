@@ -5,9 +5,10 @@ from gp_utils import BoTorchGP
 from botorch.acquisition.analytic import ExpectedImprovement, ProbabilityOfImprovement
 from botorch.sampling import IIDNormalSampler
 from botorch.optim.initializers import initialize_q_batch_nonneg
+import sobol_seq
 
 class UCBwLP():
-    def __init__(self, env, initial_temp = None, beta = None, lipschitz_constant = 20, num_of_starts = 75, num_of_optim_epochs = 150, \
+    def __init__(self, env, initial_temp = None, beta = None, lipschitz_constant = 1, num_of_starts = 75, num_of_optim_epochs = 150, \
         hp_update_frequency = None):
         self.env = env
         self.t_dim = self.env.t_dim
@@ -28,8 +29,12 @@ class UCBwLP():
             self.fixed_beta = True
             self.beta = beta
 
+        # parameters of the method
         self.lipschitz_constant = lipschitz_constant
         self.max_value = 0
+        # initalise grid to select lipschitz constant
+        self.num_of_grad_points = 50 * self.dim
+        self.lipschitz_grid = sobol_seq.i4_sobol_generate(self.dim, self.num_of_grad_points)
 
         # optimisation parameters
         self.num_of_starts = num_of_starts
@@ -135,6 +140,15 @@ class UCBwLP():
     def update_model(self):
         if self.new_obs is not None:
             self.model.fit_model(self.X, self.Y, previous_hyperparams=self.gp_hyperparams)
+            grid = torch.tensor(self.lipschitz_grid, requires_grad = True).double()
+            mean, _ = self.model.posterior(grid)
+            external_grad = torch.ones(self.num_of_grad_points)
+            mean.backward(gradient = external_grad)
+            mu_grads = grid.grad
+            mu_norm = torch.norm(mu_grads, dim = 1)
+            self.lipschitz_constant = max(mu_norm).item()
+
+
 
     def build_af(self, X):
         batch = self.env.temperature_list
@@ -176,7 +190,7 @@ class UCBwLP():
         # optimisation bounds
         bounds = torch.stack([torch.zeros(self.dim), torch.ones(self.dim)])
         # random initialisation
-        X = torch.rand(self.num_of_starts, self.dim)
+        X = torch.rand(self.num_of_starts, self.dim).double()
         X.requires_grad = True
         # define optimiser
         optimiser = torch.optim.Adam([X], lr = 0.0001)
