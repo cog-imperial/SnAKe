@@ -158,9 +158,9 @@ class BoTorchGP():
         self.model.initialize(**hypers)
     
     def posterior(self, test_x):
-        test_x = torch.tensor(test_x)
+        if type(test_x) is not torch.Tensor:
+            test_x = torch.tensor(test_x).double()
         self.model.eval()
-        test_x = test_x.double()
         model_posterior = self.model(test_x)
         mean = model_posterior.mean
         std = model_posterior.stddev
