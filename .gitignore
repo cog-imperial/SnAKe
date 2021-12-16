@@ -27,6 +27,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 experiment_results/
+experiment_results_async/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
