@@ -619,7 +619,7 @@ class RandomTSP():
 
 if __name__ == '__main__':
 
-    exp = '1D'
+    exp = '2D'
 
     if exp == '1D':
 
@@ -696,8 +696,7 @@ if __name__ == '__main__':
             initial_temp = np.array([0.5, 0.5]).reshape(1, -1)
             func = TwoDSinCosine(random=True)
             env = NormalDropletFunctionEnv(func, budget = budget, max_batch_size = max_batch_size)
-            model = AdaptiveThompsonScheduling(env, max_change = max_change, initial_temp = initial_temp, \
-                merge_method = 'e-Point Deletion', merge_constant = 0.1)
+            model = UCBwLP(env, initial_temp = initial_temp)
             #model = AdaptiveThompsonScheduling(env, max_change = max_change, initial_temp = initial_temp)
             X, Y = model.run_optim()
 
