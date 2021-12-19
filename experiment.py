@@ -77,11 +77,12 @@ y_train = np.array(y_train)
 gp_model = BoTorchGP(lengthscale_dim = dim)
 
 gp_model.fit_model(x_train, y_train)
-#gp_model.set_hyperparams(hyperparams=(2, 1, 1e-4, 0))
+gp_model.set_hyperparams(hyperparams=(10, 0.05, 1e-4, 0))
 gp_model.optim_hyperparams()
 
 hypers = gp_model.current_hyperparams()
 
+print('Initial hyper-parameters:', hypers)
 # Define Normal BayesOp Environment without delay
 env = NormalDropletFunctionEnv(func, budget, max_batch_size = 1)
 
