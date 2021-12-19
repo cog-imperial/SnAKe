@@ -379,15 +379,17 @@ class Ackley4D():
         pass
     
     def query_function(self, x):
+        # new optimum
+        #shift = np.array([0.4, 0.5, 0.45, 0.55])
         # first reparametrise x
-        x = x * (32.768 * 2) - 32.768
+        x = (x - 0.45) * (2 * 2)
         s1 = np.sum(x**2, axis = 1) / 4
         s2 = np.sum(np.cos(self.c * x), axis = 1) / 4
         return self.a * np.exp(-self.b * np.sqrt(s1)) + np.exp(s2) - self.a - np.exp(1)
     
     def query_function_torch(self, x):
         # first reparametrise x
-        x = x * (32.768 * 2) - 32.768
+        x = (x - 0.45) * (2 * 2)
         s1 = torch.sum(x**2, axis = 1) / 4
         s2 = torch.sum(torch.cos(self.c * x), axis = 1) / 4
         return self.a * torch.exp(-self.b * torch.sqrt(s1)) + torch.exp(s2) - self.a - np.exp(1)
