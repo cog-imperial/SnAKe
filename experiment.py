@@ -77,7 +77,7 @@ y_train = np.array(y_train)
 gp_model = BoTorchGP(lengthscale_dim = dim)
 
 gp_model.fit_model(x_train, y_train)
-gp_model.set_hyperparams(hyperparams=(2, 1, 1e-4, 0))
+#gp_model.set_hyperparams(hyperparams=(2, 1, 1e-4, 0))
 gp_model.optim_hyperparams()
 
 hypers = gp_model.current_hyperparams()
