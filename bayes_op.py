@@ -142,13 +142,13 @@ class UCBwLP():
         if self.new_obs is not None:
             self.model.fit_model(self.X, self.Y, previous_hyperparams=self.gp_hyperparams)
             grid = torch.tensor(self.lipschitz_grid, requires_grad = True).double()
-            mean, _ = self.model.posterior(grid)
-            external_grad = torch.ones(self.num_of_grad_points)
-            mean.backward(gradient = external_grad)
-            mu_grads = grid.grad
-            mu_norm = torch.norm(mu_grads, dim = 1)
-            self.lipschitz_constant = max(mu_norm).item()
-
+            if self.env.max_batch_size > 1:
+                mean, _ = self.model.posterior(grid)
+                external_grad = torch.ones(self.num_of_grad_points)
+                mean.backward(gradient = external_grad)
+                mu_grads = grid.grad
+                mu_norm = torch.norm(mu_grads, dim = 1)
+                self.lipschitz_constant = max(mu_norm).item()
 
 
     def build_af(self, X):
