@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from scipy.spatial import distance_matrix
 from scipy.linalg import norm
+from scipy.stats.qmc import Sobol
 import sobol_seq
 from itertools import chain
 from bayes_op import UCBwLP, ThompsonSampling
@@ -555,7 +556,8 @@ class RandomTSP():
         # create batch uniformly        
         # samples = np.random.uniform(size = (self.num_of_samples, self.dim))
         # create samples using sobol grid
-        samples = sobol_seq.i4_sobol_generate(self.dim, self.num_of_samples)
+        sobol = Sobol(self.dim)
+        samples = sobol.random(self.num_of_samples)
         self.unique_samples = samples
         self.count_list = list(np.ones(self.num_of_samples))
         # finally define the temperature samples
