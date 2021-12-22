@@ -28,6 +28,7 @@ share/python-wheels/
 MANIFEST
 experiment_results/
 experiment_results_async/
+experiment_results_snar/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
