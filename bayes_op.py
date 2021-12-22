@@ -216,8 +216,9 @@ class UCBwLP():
         best_input = X[best_start, :].detach()
 
         if self.x_dim is not None:
-            new_T = best_input[0, :self.t_dim].detach.numpy().reshape(1, -1)
-            new_X = best_input[0, self.t_dim:].detach.numpy().reshape(1, -1)
+            best = best_input.detach().numpy().reshape(1, -1)
+            new_T = best[0, :self.t_dim].reshape(1, -1)
+            new_X = best[0, self.t_dim:].reshape(1, -1)
         else:
             new_T = best_input.detach().numpy().reshape(1, -1)
             new_X = None
