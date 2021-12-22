@@ -251,7 +251,7 @@ class AdaptiveThompsonScheduling():
     
     def delete_points_from(self, new_schedule):
         # remove for each point in the batch
-        b = 1
+        self.deleted_points = []
         queried_batch_copy = self.queried_batch
         if self.merge_constant == 'Reverse':
             queried_batch_copy.reverse()
@@ -260,6 +260,10 @@ class AdaptiveThompsonScheduling():
             #new_schedule = self.working_grid[new_schedule_idx.reshape(-1), :]
             idx = self.find_nearest_point(x0, new_schedule)
             idx_range = np.arange(len(new_schedule))
+            # save deleted point for animation
+            if self.gen_animation == True:
+                self.deleted_points.append(new_schedule[idx, :])
+
             new_schedule = new_schedule[idx_range != idx, :]
             # either remove, or subtract one from count list
             #if self.count_list[idx] == 1:
@@ -336,7 +340,7 @@ class AdaptiveThompsonScheduling():
             samples = samples.numpy()
             
             if self.gen_animation:
-                self.out0 = ['raw samples', samples, self.env.temperature_list, self.X]
+                self.out0 = ['raw samples', samples, self.env.temperature_list.copy(), self.X.copy()]
             # delete points if necessary
             if self.merge_method in ['Point Deletion', 'e-Point Deletion']:
                 samples = self.delete_points_from(samples)
@@ -351,8 +355,8 @@ class AdaptiveThompsonScheduling():
 
             distances_to_grid = distance_matrix(self.working_grid, samples)
             max_idx = np.argmin(distances_to_grid, axis = 0).squeeze()
-#            samples = self.model.sample(self.working_grid, n_samples = self.num_of_samples)
-#            samples = samples.reshape(len(self.working_grid), self.num_of_samples)
+            #samples = self.model.sample(self.working_grid, n_samples = self.num_of_samples)
+            #samples = samples.reshape(len(self.working_grid), self.num_of_samples)
 
 
         #max_idx = np.argmax(samples, axis = 1).squeeze()
@@ -370,7 +374,7 @@ class AdaptiveThompsonScheduling():
         self.count_list = self.count_list.reshape(-1, 1)
 
         if self.gen_animation:
-            self.out1 = ['deleted samples', self.working_grid[unique_sample_idx, :], self.env.temperature_list, self.X]
+            self.out1 = ['deleted samples', self.working_grid[unique_sample_idx, :].copy(), self.env.temperature_list.copy(), self.X.copy()]
         self.unique_samples = self.working_grid[unique_sample_idx.reshape(-1), :]
         # ordered_queries = ordered_queries[ordered_queries[:, 0].argsort()][self.env.t:]
         # self.temperature_ordered = self.ordered_queries[:, 0]
@@ -410,9 +414,6 @@ class AdaptiveThompsonScheduling():
         # obtain new path
         new_path_idx = tsp(G, cycle = True, method = method)
 
-        if self.gen_animation:
-            self.out2 = ['new_plan', self.unique_samples[new_path_idx[:-1], :], self.env.temperature_list, self.X]
-
         # remove current_temp
         if self.current_temp_in_sample:
             new_path_idx = new_path_idx[:-1]
@@ -426,6 +427,9 @@ class AdaptiveThompsonScheduling():
         # finally, update query plan
         #self.query_plan = self.temperature_samples[new_path_idx, :]
         self.query_plan = self.unique_samples[new_path_idx, :]
+
+        if self.gen_animation:
+            self.out2 = ['new_plan', self.query_plan.copy(), self.env.temperature_list.copy(), self.X.copy()]
     
     def update_model(self):
         if self.x_dim == None:
