@@ -49,11 +49,11 @@ seed = run_num + (function_number + 1) * 91
 torch.manual_seed(seed)
 np.random.seed(seed)
 
-initial_temp = np.random.uniform(size = (1, func.t_dim)).reshape(1, -1)
-
 dim = func.t_dim
 if func.x_dim is not None:
     dim = dim + func.x_dim
+
+initial_temp = np.random.uniform(size = (1, dim)).reshape(1, -1)
 
 x_train = np.random.uniform(0, 1, size = (max(int(budget / 5), 10 * dim), dim))
 y_train = []
