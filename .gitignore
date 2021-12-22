@@ -133,3 +133,7 @@ experiment_results.zip
 
 # mac stuff
 .DS_Store
+
+# graph creation
+create_graph.py
+figures/
