@@ -10,12 +10,10 @@ import numpy as np
 import sys
 import os
 
-#method = 'EaS'
-#function_number = 6
-#run_num = 10
-#budget = 50
-#epsilon = 0
-#cost_func = 2
+# method = 'EI'
+# run_num = 10
+# budget = 50
+# epsilon = 0
 
 method = str(sys.argv[1])
 run_num = int(sys.argv[2])
@@ -42,7 +40,7 @@ budget = budget - 1
 
 # Define cost function
 
-cost_function = lambda x, y: distance_matrix(x, y, p = 1)
+cost_function = lambda x, y: max_time_cost(x, y)
 
 # Define seed, sample initalisation points
 seed = run_num + (function_number + 1) * 91
