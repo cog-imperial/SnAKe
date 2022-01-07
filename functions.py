@@ -69,13 +69,13 @@ class ConvergenceTest():
         pass
 
     def query_function(self, temp):
-        if temp <= 0.3:
-            return 100*(temp-0.2) * (temp - 0.3)**2
-        elif temp <= 0.8:
-            return np.zeros(shape = temp.shape)
-        else:
-            return -200*(temp-0.8)**2 * (temp - 0.9)
-        #return np.sin(2*(temp - 0.5))
+        #if temp <= 0.3:
+        #    return 100*(temp-0.2) * (temp - 0.3)**2
+        #elif temp <= 0.8:
+        #    return np.zeros(shape = temp.shape)
+        #else:
+        #    return -200*(temp-0.8)**2 * (temp - 0.9)
+        return np.sin(10 * temp) + np.exp(-(temp - 0.775) ** 2 / 0.1) / 3
 
 class TwoDSinCosine():
     def __init__(self, random = False):
