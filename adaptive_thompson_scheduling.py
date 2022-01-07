@@ -625,21 +625,26 @@ class RandomTSP():
 
 if __name__ == '__main__':
 
-    exp = '2D'
+    exp = '1D'
 
     if exp == '1D':
 
-        budget = 200
+        budget = 250
         max_batch_size = 1
-        epsilon_list = [1e-1, 0]
-        methods = ['e-Point Deletion', 'Resampling']
+        epsilon_list = [0.1]
+        methods = ['e-Point Deletion']
+        colors = ['b', 'tab:red']
         max_change = None
 
-        fig, ax = plt.subplots(nrows = 2, ncols = len(epsilon_list))
-        fig.set_figheight(6)
-        fig.set_figwidth(8 * len(epsilon_list))
-        title = f'Budget = {budget} : Time delay = {max_batch_size - 1}'
-        fig.suptitle(title)
+        fig, ax = plt.subplots(nrows = 1, ncols = 1)
+        fig.set_figheight(3.5)
+        fig.set_figwidth(7)
+        #title = f'Budget = {budget} : Time delay = {max_batch_size - 1}'
+        #fig.suptitle(title)
+        pt = 0.7362
+        escape_prediction = budget * pt
+
+        np.random.seed(2022)
 
         for i in range(0, len(epsilon_list)):
             initial_temp = np.array([0]).reshape(1, 1)
@@ -649,8 +654,8 @@ if __name__ == '__main__':
             env = NormalDropletFunctionEnv(func, budget = budget, max_batch_size = max_batch_size)
             model = AdaptiveThompsonScheduling(env, max_change = max_change, merge_method = methods[i], \
                 merge_constant = epsilon, initial_temp = initial_temp, num_of_multistarts = 50)
-            model.set_hyperparams(constant = 0.4, lengthscale = 0.1, noise = 1e-5, mean_constant=-0.6)
-            X, Y = model.run_optim()
+            model.set_hyperparams(constant = 0.6, lengthscale = torch.tensor(0.1).reshape(-1, 1), noise = 1e-5, mean_constant=0)
+            X, Y = model.run_optim(verbose = True)
             target_func = []
             grid = np.sort(model.global_grid0, axis = 0)
 
@@ -660,28 +665,59 @@ if __name__ == '__main__':
             times = np.array(range(0, env.budget+1)).reshape(-1, 1)
             # show posterior too
             posterior_mean, posterior_sd = model.model.posterior(grid)
-            if i == 0:
-                title = f'$\epsilon$ = {epsilon}.'
-            else:
+            if methods[0] == 'Resampling':
                 title = f'No Point Deletion'
-            ax[0, i].set_title(title) #do this for more in the list
-            #ax[0].set_title(title)
-            ax[0, i].scatter(X, Y, s = 50, marker = 'x', c = 'r')
+            else:
+                title = f'$\epsilon$ = {epsilon}.'
+            '''
+            ax[0].set_title(title) #do this for more in the list
+            ax[0].set_title(title)
+            ax[0].scatter(X, Y, s = 50, marker = 'x', c = 'r')
             if i == 0:
-                ax[0, i].set_ylabel('Observations')
-            ax[0, i].plot(grid, target_func, '--k')
-            ax[0, i].plot(grid, posterior_mean.detach().numpy(), 'b')
-            ax[0, i].fill_between(grid.reshape(-1), posterior_mean.detach() - 1.96 * posterior_sd.detach(), \
+                ax[0].set_ylabel('Observations')
+            ax[0].plot(grid, target_func, '--k', label = 'True function')
+            ax[0].plot(grid, posterior_mean.detach().numpy(), 'b', label = 'GP mean')
+            ax[0].fill_between(grid.reshape(-1), posterior_mean.detach() - 1.96 * posterior_sd.detach(), \
                  posterior_mean.detach() + 1.96 * posterior_sd.detach(), alpha = 0.2)
-            ax[0, i].set_xlim(0, 1)
-            ax[0, i].grid()
-            ax[1, i].plot(X, times)
-            ax[1, i].set_xlabel('x')
+            ax[0].set_xlim(0, 1)
+            ax[0].grid()
+            ax[0].legend(loc = 'lower right')
+            ax[1].plot(X, times)
+            ax[1].set_xlabel('x')
             if i == 0:
-                ax[1, i].set_ylabel('time-step')
-            ax[1, i].set_xlim(0, 1)
-            ax[1, i].grid()
+                ax[1].set_ylabel('Iteration')
+            ax[1].set_xlim(0, 1)
+            ax[1].grid()
+            ax[1].hlines(escape_prediction, 0, 1, colors = 'g', linestyles = '--', label = 'Escape Prediction')
+            ax[1].legend(loc = 'lower right')
+            if i == 1:
+                label = '0.1-Point Deletion'
+            else:
+                label = 'Resampling'
+            ax.plot(X, times, c = colors[i], label = label)
+            ax.set_xlabel('x')
+            if i == 0:
+                ax.set_ylabel('Iteration')
+            ax.set_xlim(0, 1)
+            ax.grid()
+            if i == 1:
+                ax.hlines(escape_prediction, 0, 1, colors = colors[i], linestyles = '--', label = 'Escape Prediction')
+            ax.legend(loc = 'lower right')
 
+            '''
+            ax.scatter(X, Y, s = 50, marker = 'x', c = 'k')
+            if i == 0:
+                ax.set_ylabel('f(x)')
+            ax.plot(grid, target_func, '--k', label = 'True function')
+            ax.plot(grid, posterior_mean.detach().numpy(), 'b', label = 'GP mean')
+            ax.fill_between(grid.reshape(-1), posterior_mean.detach() - 1.96 * posterior_sd.detach(), \
+                 posterior_mean.detach() + 1.96 * posterior_sd.detach(), alpha = 0.2, color = 'b')
+            ax.set_xlim(0, 1)
+            ax.grid()
+            ax.legend(loc = 'lower right')
+        
+        filename = 'PDvsRS_PointDeletion_model' + '.pdf'
+        plt.savefig(filename, bbox_inches = 'tight')
         plt.show()
     
     if exp == '2D':
