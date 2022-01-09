@@ -10,17 +10,17 @@ import numpy as np
 import sys
 import os
 
-method = 'TS'
-run_num = 9
-budget = 100
-epsilon = 0.1
-delay = 10
-
-#method = str(sys.argv[1])
-#run_num = int(sys.argv[2])
+#method = 'TS'
+#run_num = 9
 #budget = 100
-#epsilon = float(sys.argv[3])
-#delay = int(sys.argv[4])
+#epsilon = 0.1
+#delay = 10
+
+method = str(sys.argv[1])
+run_num = int(sys.argv[2])
+budget = 100
+epsilon = float(sys.argv[3])
+delay = int(sys.argv[4])
 
 function_number = 0
 
@@ -28,10 +28,19 @@ print(method, run_num, budget, epsilon)
 
 # Make sure problem is well defined
 assert method in ['EaS', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
-assert delay in [5, 10, 25], \
+assert delay in [0, 1, 2, 3], \
     'Budget must be integer in [10, 25, 50, 100]'
 assert epsilon in [0, 0.1, 0.25, 1], \
     'Epsilon must be in [0, 0.1, 0.25, 1]'
+
+if delay == 0:
+    delay = 5
+elif delay == 1:
+    delay = 10
+elif delay == 2:
+    delay = 25
+else:
+    delay = 50
 
 # Define function name
 functions = [SnAr()]
