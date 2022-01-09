@@ -111,7 +111,7 @@ class NormalDropletFunctionEnv():
 
         if self.batch_size == self.max_batch_size:
             # obtain query and observation
-            temp_query = self.temperature_list[0]
+            temp_query = self.temperature_list[0].reshape(1, -1)
             # update temperature list
             self.temperature_list = self.temperature_list[1:]
             self.batch_size = self.batch_size - 1
@@ -119,7 +119,7 @@ class NormalDropletFunctionEnv():
             query_return = temp_query
             # same for x-query
             if self.x_dim is not None:
-                x_query = self.batch[0]
+                x_query = self.batch[0].reshape(1, -1)
                 self.batch = self.batch[1:]
                 query_return = np.concatenate((temp_query, x_query), axis = 1)
                 query = [query_return]
@@ -140,16 +140,11 @@ class NormalDropletFunctionEnv():
             query_out = t
             if self.x_dim is not None:
                 query_x = self.batch[i]
-                query = [query_t, query_x]
-                query_out = np.concatenate((query_t, query_x), axis = 1)
+                query = np.concatenate((query_t.reshape(1, -1), query_x.reshape(1, -1)), axis = 1).reshape(1, -1)
+                query_out = np.concatenate((query_t.reshape(1, -1), query_x.reshape(-1, 1)), axis = 1)
             obs = self.function.query_function(*query)
 
             self.X.append(query_out)
             self.Y.append(obs)
         
         return self.X, self.Y
-
-
-
-        
-

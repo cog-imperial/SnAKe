@@ -408,6 +408,7 @@ class SnAr():
         pass
 
     def query_function(self, x):
+        x = x.reshape(1, -1)
         temp = x[:, 0] * 80 + 40
         conc_dfnb = x[:, 1] * 0.4 + 0.1
         equiv_pldn = x[:, 2] * 4 + 1

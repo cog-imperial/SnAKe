@@ -150,7 +150,6 @@ class UCBwLP():
                 mu_norm = torch.norm(mu_grads, dim = 1)
                 self.lipschitz_constant = max(mu_norm).item()
 
-
     def build_af(self, X):
         batch = self.env.temperature_list
 
@@ -191,7 +190,7 @@ class UCBwLP():
         # optimisation bounds
         bounds = torch.stack([torch.zeros(self.dim), torch.ones(self.dim)])
         # random initialisation
-        X = torch.rand(self.num_of_starts, self.dim).double()
+        X = torch.rand(100 * self.num_of_starts, self.dim).double()
         X.requires_grad = True
         # define optimiser
         optimiser = torch.optim.Adam([X], lr = 0.0001)
@@ -503,7 +502,7 @@ class oneExpectedImprovement():
         X = initialize_q_batch_nonneg(Xraw, Yraw, self.num_of_starts)
         X.requires_grad = True
         # define optimiser
-        optimiser = torch.optim.Adam([X], lr = 0.01)
+        optimiser = torch.optim.Adam([X], lr = 0.0001)
         
         # do the optimisation
         for _ in range(self.num_of_optim_epochs):
