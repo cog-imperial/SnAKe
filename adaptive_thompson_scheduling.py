@@ -28,7 +28,7 @@ class AdaptiveThompsonScheduling():
                             num_of_multistarts = 10, \
                                 cost_function = None):
         ''' 
-        Method for Adaptive Thompson Scheduling. 
+        Method for Etch a Sketch Bayesian Optimization (previously called Adaptive Thompson Scheduling). 
 
         Required:
         env: An environment that runs the optimisation.
@@ -709,9 +709,9 @@ if __name__ == '__main__':
             if i == 0:
                 ax.set_ylabel('f(x)')
             ax.plot(grid, target_func, '--k', label = 'True function')
-            ax.plot(grid, posterior_mean.detach().numpy(), 'b', label = 'GP mean')
+            ax.plot(grid, posterior_mean.detach().numpy(), 'r', label = 'GP mean')
             ax.fill_between(grid.reshape(-1), posterior_mean.detach() - 1.96 * posterior_sd.detach(), \
-                 posterior_mean.detach() + 1.96 * posterior_sd.detach(), alpha = 0.2, color = 'b')
+                 posterior_mean.detach() + 1.96 * posterior_sd.detach(), alpha = 0.2, color = 'r')
             ax.set_xlim(0, 1)
             ax.grid()
             ax.legend(loc = 'lower right')
