@@ -5,16 +5,24 @@ from gp_utils import BoTorchGP
 from sampling import EfficientThompsonSampler
 
 func = lambda x : np.sin(10 * x) + np.exp(-(x - 0.775) ** 2 / 0.1) / 3
+run_num = 10
+experiment_name = 'WithOptimum'
+color = 'r'
 
 # pt_no_optimum = []
 pt_optimum = []
 
 max_num_obs = 15
 
-interval_ub = 0.1
-interval_lb = 0
+interval_ub = 0.2
+interval_lb = 0.1
 
-for q in range(1, max_num_obs + 1):
+x_list = []
+
+np.random.seed(run_num)
+for q in range(15, max_num_obs + 1):
+    # x_list.append(np.random.uniform() * (interval_ub - interval_lb) + interval_lb)
+    # x_train = np.array(x_list).reshape(-1, 1)
     x_train = np.linspace(interval_lb, interval_ub, q).reshape(-1, 1)
     y_train = func(x_train)
 
@@ -48,16 +56,29 @@ lb = lb.numpy()
 
 print(pt_optimum[-1])
 
-ax[1].plot(range(1, max_num_obs + 1), pt_optimum)
+# filename = 'results_pt/' + experiment_name + '/run' + str(run_num)
+# np.save(filename, np.array(pt_optimum))
+
+pt_opts = []
+for run_num in range(1, 10 + 1):
+    filename = 'results_pt/' + experiment_name + '/run' + str(run_num) + '.npy'
+    pt_opt = np.load(filename)
+    pt_opts.append(pt_opt.reshape(-1))
+
+pt_optimum = np.array(pt_opts)
+
+ax[1].plot(range(1, max_num_obs + 1), pt_optimum.T.mean(axis = 1), alpha = 1, c = color)
+ax[1].fill_between(range(1, max_num_obs + 1), np.maximum(pt_optimum.T.mean(axis = 1) - pt_optimum.T.std(axis = 1), 0), \
+    pt_optimum.T.mean(axis = 1) + pt_optimum.T.std(axis = 1), alpha = 0.2, color = color)
 ax[1].set_xlabel(f'Number of queries in [{interval_lb}, {interval_ub}]')
 ax[1].set_ylabel('Estimate of $p_t$')
 # ax[0].plot(range(1, max_num_obs + 1), pt_no_optimum, label = 'pt no optim')
 
-ax[0].plot(full_grid.reshape(-1), mean.detach(), 'b', label = 'GP mean')
-ax[0].fill_between(full_grid.reshape(-1), ub, lb, color = 'b', alpha = 0.2)
+ax[0].plot(full_grid.reshape(-1), mean.detach(), color, label = 'GP mean')
+ax[0].fill_between(full_grid.reshape(-1), ub, lb, color = color, alpha = 0.2)
 ax[0].plot(full_grid, Ys, 'k--', label = 'True function')
 ax[0].set_xlabel('x')
 ax[0].set_ylabel('y')
 ax[0].legend(loc = 'lower left')
-plt.savefig('ProbOfEscapeWithOutOptimum.pdf', bbox_inches = 'tight')
+plt.savefig('ProbOfEscapeWithOptimum.pdf', bbox_inches = 'tight')
 plt.show()
