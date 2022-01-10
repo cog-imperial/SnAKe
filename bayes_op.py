@@ -160,7 +160,10 @@ class UCBwLP():
 
         ucb = mean + self.beta * std
 
-        for penalty_point in batch:
+        for i, penalty_point in enumerate(batch):
+            if self.env.x_dim is not None:
+                query_x = self.env.batch[i]
+                penalty_point = np.concatenate((penalty_point, query_x.reshape(1, -1)), axis = 1).reshape(1, -1)
             penalty_point = torch.tensor(penalty_point)
             # define the value that goes inside the erfc
             norm = torch.norm(penalty_point - X, dim = 1)
