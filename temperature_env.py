@@ -1,73 +1,12 @@
 import numpy as np
 
-# define temperature environment
-class TemperatureEnv():
-    def __init__(self, function, x_dim = None, budget = 100, max_batch_size = 10):
-        # takes a function class which takes a temperature path as first input, and possibly second argument x
-        self.function = function
-
-        # check if we are taking x-arguments
-        if x_dim == None:
-            self.x_dim = None
-        else:
-            assert isinstance(x_dim, int), 'x-dimension should be an integer'
-            self.x_dim = None
-        # set optim budget and batch size
-        self.budget = budget
-        self.max_batch_size = max_batch_size
-        self.t_dim = self.function.t_dim
-
-        # initialise other variables
-        self.initialise_optim()
-    
-    def initialise_optim(self):
-        # initialise query / observation lists
-        if self.x_dim is not None:
-            self.X = []
-        self.Y = []
-
-        # initialise optimisation time and batch size
-        self.t = 0
-        self.batch_size = 0
-
-        # initialise eval batch
-        self.temperature_list = []
-        if self.x_dim is not None:
-            self.batch = []
-        
-        # draw new function
-        self.function.draw_new_function()
-    
-    def step(self, T_i, x = None):
-        '''
-        Advances the process forward. Takes as input a new temperature and possibly a new x-observation.
-        '''
-        # initialise new query and observation variable
-        obs = None
-        # add action to batch
-        self.temperature_list.append(T_i)
-        if self.x_dim is not None:
-            self.batch.append(x)
-        self.batch_size = self.batch_size + 1
-
-        if self.batch_size == self.max_batch_size:
-            # obtain temperature path
-            temp_path = self.temperature_list[:-1]
-            # update temperature list
-            self.temperature_list = self.temperature_list[1:]
-            query = (temp_path)
-            # same for x-query
-            if self.x_dim is not None:
-                x_obs = self.batch[0]
-                self.batch = self.batch[1:]
-                query = (temp_path, x_obs)
-            # obtain observation
-            obs = self.function.query(*query)
-        
-        return obs
-
 class NormalDropletFunctionEnv():
     def __init__(self, function, budget = 100, max_batch_size = 10):
+        '''
+        Environment inspired by micro-reactors. A single query is submitted at every time-step, and the environment evaluates up to
+        max_batch_size queries at any time. This means there is a max_batch_size iteration delay between asking for a query, and obtaining
+        an evaluation. To define the environment we require an objective function.
+        '''
         # takes a function class which takes a temperature path as first input, and possibly second argument x
         self.function = function
         # check if we are taking x-arguments
