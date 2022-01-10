@@ -708,6 +708,7 @@ if __name__ == '__main__':
             ax.scatter(X, Y, s = 50, marker = 'x', c = 'k')
             if i == 0:
                 ax.set_ylabel('f(x)')
+            ax.set_xlabel('x')
             ax.plot(grid, target_func, '--k', label = 'True function')
             ax.plot(grid, posterior_mean.detach().numpy(), 'r', label = 'GP mean')
             ax.fill_between(grid.reshape(-1), posterior_mean.detach() - 1.96 * posterior_sd.detach(), \
