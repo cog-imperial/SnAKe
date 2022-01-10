@@ -1,64 +1,12 @@
 import numpy as np
-from scipy.sparse.construct import rand
 import math
-from summit import experiment
 import torch
 from summit.benchmarks import SnarBenchmark
 from summit.utils.dataset import DataSet
 
-class GaussianMixtureTemps():
-    def __init__(self, path_length = 10, slope_bounds = (.25, .05), init_temp_bounds = (0.5, 1), \
-        amp_bounds = (0.5, 2)):
-        # how many temperatures per path
-        self.path_length = path_length
-        self.alpha = 20
-        # temperature grid, to define the perfect path
-        self.temp_grid = np.linspace(0, 1, self.path_length)
-        # define the bounds to draw the functions from
-        self.slope_bounds = slope_bounds
-        self.init_temp_bounds = init_temp_bounds
-        self.amp_bounds = amp_bounds
-        # no x-dimension for now
-        self.x_dim = None
-        self.t_dim = 1
-
-    def draw_new_function(self):
-        self.amplitude = np.random.uniform(self.amp_bounds[0], self.amp_bounds[1])
-        self.temp_slope = np.random.uniform(self.slope_bounds[0], self.slope_bounds[1])
-        self.init_temp = np.random.uniform(self.init_temp_bounds[0], self.init_temp_bounds[1])
-
-        self.ideal_path = self.init_temp - self.temp_slope * self.temp_grid
-
-    def query_function(self, path, constant = False):
-        if constant:
-            # if we are evaluating with constant temperature
-            action = np.array([path] * self.path_length)
-        exps = np.exp(-self.alpha*(self.ideal_path - action)**2)
-        return np.mean(exps) * self.amplitude
-
-class GaussianMixture():
-    def __init__(self, mode_bounds = (2, 4), amp_bounds = (0.5, 2), mu_bounds = (0, 1), \
-        sigma_bounds = (.1, .25)):
-        # temperature grid, to define the perfect path
-        # define the bounds to draw the functions from
-        self.mode_bounds = mode_bounds
-        self.mu_bounds = mu_bounds
-        self.amp_bounds = amp_bounds
-        self.sigma_bounds = sigma_bounds
-        # no x-dimension for now
-        self.x_dim = None
-        self.t_dim = 1
-
-    def draw_new_function(self):
-        self.modes = np.random.randint(self.mode_bounds[0], self.mode_bounds[1])
-        self.amplitude = np.random.uniform(self.amp_bounds[0], self.amp_bounds[1], size = self.modes)
-        self.mu = np.random.uniform(self.mu_bounds[0], self.mu_bounds[1], self.modes)
-        self.sigma = np.random.uniform(self.sigma_bounds[0], self.sigma_bounds[1], self.modes)
-
-    def query_function(self, temp):
-        exponent = -((temp - self.mu) / self.sigma)**2
-        out = np.exp(exponent) * self.amplitude
-        return np.sum(out)
+'''
+In this script we include all the Benchmark function which we will evaluate.
+'''
 
 class ConvergenceTest():
     def __init__(self):
@@ -69,12 +17,6 @@ class ConvergenceTest():
         pass
 
     def query_function(self, temp):
-        #if temp <= 0.3:
-        #    return 100*(temp-0.2) * (temp - 0.3)**2
-        #elif temp <= 0.8:
-        #    return np.zeros(shape = temp.shape)
-        #else:
-        #    return -200*(temp-0.8)**2 * (temp - 0.9)
         return np.sin(10 * temp) + np.exp(-(temp - 0.775) ** 2 / 0.1) / 3
 
 class TwoDSinCosine():
