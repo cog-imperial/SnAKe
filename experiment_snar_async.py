@@ -10,11 +10,11 @@ import numpy as np
 import sys
 import os
 
-#method = 'TS'
+#method = 'UCBwLP'
 #run_num = 9
 #budget = 100
 #epsilon = 0.1
-#delay = 10
+#delay = 1
 
 method = str(sys.argv[1])
 run_num = int(sys.argv[2])
@@ -29,7 +29,7 @@ print(method, run_num, budget, epsilon)
 # Make sure problem is well defined
 assert method in ['EaS', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
 assert delay in [0, 1, 2, 3], \
-    'Budget must be integer in [10, 25, 50, 100]'
+    'Delay must be integer in [0, 1, 2, 3]'
 assert epsilon in [0, 0.1, 0.25, 1], \
     'Epsilon must be in [0, 0.1, 0.25, 1]'
 
