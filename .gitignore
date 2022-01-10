@@ -30,6 +30,7 @@ experiment_results/
 experiment_results_async/
 experiment_results_snar/
 experiment_results_snar_async/
+results_pt/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
