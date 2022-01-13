@@ -89,12 +89,11 @@ class EfficientThompsonSampler():
         self.V = torch.matmul(self.inv_mat, mat1)
 
     def calculate_fourier_features(self, x):
+        '''
+        Calculate the Fourier Features evaluated at some input x
+        '''
         # evaluation using fourier features
-        # we use unsqueezing, normal multiplication and then summation to compute dot products
-        #thetas = self.thetas.unsqueeze(0)
-        #thetas = thetas.repeat(1, self.num_of_samples, 1, 1)
         self.posterior_update(x)
-        #x = x.unsqueeze(2)
         # calculate the dot product between the frequencies, theta, and the new query points
         dot = x.matmul(self.thetas.T)
         # calculate the fourier frequency by adding bias and cosine
@@ -103,9 +102,11 @@ class EfficientThompsonSampler():
         return self.outputscale * np.sqrt(2 / self.num_of_bases) * ft
 
     def sample_prior(self, x):
+        '''
+        Create a sample form the prior, evaluate it at x
+        '''
         if type(x) is not torch.Tensor:
             x = torch.tensor(x)
-
         # calculate the fourier features evaluated at the query points
         out1 = self.calculate_fourier_features(x)
         # extend the weights so that we can use element wise multiplication
@@ -114,6 +115,9 @@ class EfficientThompsonSampler():
         return torch.sum(weights * out1, axis = -1)
 
     def posterior_update(self, x):
+        '''
+        Calculate the posterior update at a location x
+        '''
         if type(x) is not torch.Tensor:
             x = torch.tensor(x)
         # x: num_of_multistarts x num_of_samples x dim
@@ -130,13 +134,17 @@ class EfficientThompsonSampler():
         return out.sum(axis = 1) # we return the sum across the number of training point, as per the paper
 
     def query_sample(self, x):
-        # input: num_of_multistarts x num_of_samples x problem_dimension
-        # output: num_of_multistarts x num_of_samples
+        '''
+        Query the sample at a location 
+        '''
         prior = self.sample_prior(x)
         update = self.posterior_update(x)
         return prior + update
     
     def generate_candidates(self):
+        '''
+        Generate the Thompson Samples, this function optimizes the samples.
+        '''
         # we are always working on [0, 1]^d
         bounds = torch.stack([torch.zeros(self.x_dim), torch.ones(self.x_dim)])
         # initialise randomly - there is definitely much better ways of doing this
@@ -163,7 +171,6 @@ class EfficientThompsonSampler():
         # choose the best one for each sample
         best_idx = torch.argmax(final_evals, axis = 0)
         # return the best one for each sample, without gradients
-        # X_out: num_of_samples x dim
         X_out = X[best_idx, range(0, self.num_of_samples), :]
         return X_out.detach()
 
