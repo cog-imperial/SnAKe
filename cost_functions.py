@@ -2,7 +2,12 @@ import numpy as np
 from scipy.spatial import distance_matrix
 import matplotlib.pyplot as plt
 
+'''
+Cost function used in SnAr Experiment in the paper, see section 4.2 to see how we arrived to it.
+'''
+
 # need a function that takes as input two numpy arrays, and returns the cost matrix between the functions
+
 def max_time_cost(vec_1, vec_2, constants = [5, 2], thresholds = [2.5 / 80, 0.01 / 0.4]):
     assert vec_1.shape[1] == len(constants) == vec_2.shape[1], 'Number of constants does not match number of variables'
     num_rows = vec_1.shape[0]
