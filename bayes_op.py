@@ -58,6 +58,9 @@ class UCBwLP():
         # initalise grid to select lipschitz constant
         self.num_of_grad_points = 50 * self.dim
         self.lipschitz_grid = sobol_seq.i4_sobol_generate(self.dim, self.num_of_grad_points)
+        # do we require transform?
+        if (self.env.function.name in ['Perm10D', 'Ackley4D', 'SnarBenchmark']) & (self.env.max_batch_size > 1):
+            self.soft_plus_transform = True
 
         # optimisation parameters
         self.num_of_starts = num_of_starts
@@ -209,9 +212,12 @@ class UCBwLP():
         if self.new_obs is not None:
             mean, std = self.model.posterior(X)
         else:
-            mean, std = 0, self.constant
+            mean, std = torch.tensor(self.mean_constant), torch.tensor(self.constant)
         # calculate upper confidence bound
         ucb = mean + self.beta * std
+        # apply softmax transform if necessary
+        if self.soft_plus_transform: 
+            ucb = torch.log(1 + torch.exp(ucb))
         # penalize acquisition function, loop through batch of evaluations
         for i, penalty_point in enumerate(batch):
             # add x-variables if needed
