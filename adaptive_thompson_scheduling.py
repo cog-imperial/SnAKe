@@ -762,7 +762,7 @@ if __name__ == '__main__':
             np.random.seed(47)
             max_change = max_change_list[i]
             initial_temp = np.array([0.5, 0.5]).reshape(1, -1)
-            func = TwoDSinCosine(random=True)
+            func = BraninFunction(random=True)
             env = NormalDropletFunctionEnv(func, budget = budget, max_batch_size = max_batch_size)
             model = ThompsonSampling(env)
             #model = AdaptiveThompsonScheduling(env, max_change = max_change, initial_temp = initial_temp)
