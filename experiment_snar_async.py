@@ -10,11 +10,11 @@ import numpy as np
 import sys
 import os
 
-#method = 'UCBwLP'
-#run_num = 9
-#budget = 100
-#epsilon = 0.1
-#delay = 1
+# method = 'UCBwLP'
+# run_num = 1
+# budget = 100
+# epsilon = 0.1
+# delay = 2
 
 method = str(sys.argv[1])
 run_num = int(sys.argv[2])
