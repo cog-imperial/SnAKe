@@ -400,6 +400,7 @@ def find_optimum(func, n_starts = 25, n_epochs = 100):
 
     return best_input, best_eval
 
+# this last part is used to find the optimum of functions using gradient methods, if optimum is not available online
 if __name__ == '__main__':
     func = Michalewicz2D()
     best_input, best_eval = find_optimum(func, n_starts = 100000, n_epochs = 1000)
