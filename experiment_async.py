@@ -1,6 +1,6 @@
 import torch
 from gp_utils import BoTorchGP
-from functions import BraninFunction, Ackley4D, Michalewicz2D
+from functions import BraninFunction, Ackley4D, Hartmann3D, Michalewicz2D, Hartmann4D, Hartmann6D
 from adaptive_thompson_scheduling import AdaptiveThompsonScheduling, RandomTSP
 from bayes_op import UCBwLP, ThompsonSampling
 from temperature_env import NormalDropletFunctionEnv
@@ -40,7 +40,7 @@ assert time_delay in [10, 25], \
     'Time delay must be integer in [10, 25]'
 
 # Define function name
-functions = [BraninFunction(), Ackley4D(), Michalewicz2D()]
+functions = [BraninFunction(), Ackley4D(), Michalewicz2D(), Hartmann3D(), Hartmann4D(), Hartmann6D()]
 func = functions[function_number]
 
 # We start counting from zero, so set budget minus one
