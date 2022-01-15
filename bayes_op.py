@@ -61,6 +61,8 @@ class UCBwLP():
         # do we require transform?
         if (self.env.function.name in ['Perm10D', 'Ackley4D', 'SnarBenchmark']) & (self.env.max_batch_size > 1):
             self.soft_plus_transform = True
+        else:
+            self.soft_plus_transform = False
 
         # optimisation parameters
         self.num_of_starts = num_of_starts
