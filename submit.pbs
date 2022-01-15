@@ -1,11 +1,12 @@
-#PBS -l walltime=01:00:00
+#PBS -l walltime=02:00:00
 #PBS -l select=1:ncpus=8:mem=16gb
-#PBS -J 0-9
+#PBS -J 0-69
 
 ((run_num = ${PBS_ARRAY_INDEX} % 10 + 1))
+((func_num = ${PBS_ARRAY_INDEX} / 10 ))
 
 module load anaconda3/personal
 source activate EaSenv
 cd $PBS_O_WORKDIR
 
-python experiment.py EaS $run_num 50 0
+python experiment_async.py UCBwLP $func_num $run_num 250 0 2 10
