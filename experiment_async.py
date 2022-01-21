@@ -9,12 +9,13 @@ import numpy as np
 import sys
 import os
 
-#method = 'EaS'
-#function_number = 6
-#run_num = 10
-#budget = 50
-#epsilon = 0
-#cost_func = 2
+# method = 'EaS'
+# function_number = 1
+# run_num = 10
+# budget = 100
+# epsilon = 'lengthscale'
+# cost_func = 2
+# time_delay = 10
 
 method = str(sys.argv[1])
 function_number = int(float(sys.argv[2]))
@@ -24,15 +25,17 @@ epsilon = float(sys.argv[5])
 cost_func = int(sys.argv[6])
 time_delay = int(sys.argv[7])
 
+epsilon = 'lengthscale'
+
 print(method, function_number, run_num, budget, epsilon, cost_func, time_delay)
 
 # Make sure problem is well defined
 assert method in ['EaS', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
-assert function_number in range(7), \
-    'Function must be integer between 0 and 2'
+assert function_number in range(6), \
+    'Function must be integer between 0 and 5'
 assert budget in [100, 250], \
     'Budget must be integer in [100, 250]'
-assert epsilon in [0, 0.1, 0.25, 1], \
+assert epsilon in [0, 0.1, 0.25, 1, 'lengthscale'], \
     'Epsilon must be in [0, 0.1, 0.25, 1]'
 assert cost_func in [1, 2, 3], \
     'Cost function must be integer in [1, 2, 3] (where 3 corresponds to infinity norm)'
@@ -105,6 +108,9 @@ X, Y = mod.run_optim(verbose = True)
 
 print(X)
 print(np.array(Y))
+
+if epsilon == 'lengthscale':
+    epsilon = 'l'
 
 if method == 'EaS':
     folder_inputs = 'experiment_results_async/' + f'{epsilon}-EaS/' + func.name + f'/budget{budget + 1}/' + cost_name + f'/delay{time_delay}' + '/inputs/'
