@@ -20,7 +20,18 @@ run_num = int(sys.argv[2])
 budget = int(sys.argv[3])
 epsilon = float(sys.argv[4])
 
+epsilon = 'lengthscale'
+
 function_number = 0
+
+if budget == 0:
+    budget = 10
+elif budget == 1:
+    budget = 25
+elif budget == 2:
+    budget = 50
+else:
+    budget = 100
 
 print(method, run_num, budget, epsilon)
 
@@ -28,7 +39,7 @@ print(method, run_num, budget, epsilon)
 assert method in ['EaS', 'EI', 'UCB', 'PI', 'Random'], 'Method must be string in [EaS, EI, UCB, PI, Random]'
 assert budget in [10, 25, 50, 100], \
     'Budget must be integer in [10, 25, 50, 100]'
-assert epsilon in [0, 0.1, 0.25, 1], \
+assert epsilon in [0, 0.1, 0.25, 1, 'lengthscale'], \
     'Epsilon must be in [0, 0.1, 0.25, 1]'
 
 # Define function name
@@ -94,6 +105,9 @@ X, Y = mod.run_optim(verbose = True)
 
 print(X)
 print(np.array(Y))
+
+if epsilon == 'lengthscale':
+    epsilon = 'l'
 
 if method == 'EaS':
     folder_inputs = 'experiment_results_snar/' + f'{epsilon}-EaS/' + f'/budget{budget + 1}/' + '/inputs/'
