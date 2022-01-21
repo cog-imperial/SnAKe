@@ -80,10 +80,11 @@ class AdaptiveThompsonScheduling():
         self.hp_update_frequency = hp_update_frequency
         # number of multistarts for the gradient Thompson Samples
         self.num_of_multistarts = num_of_multistarts * self.dim
-
         # parameters of deletion method
         self.merge_method = merge_method
         self.merge_constant = merge_constant
+        if self.merge_constant == 'lengthscale':
+            self.parameter_free = True
         # cost function
         if cost_function is None:
             self.cost_function = distance_matrix
@@ -155,6 +156,9 @@ class AdaptiveThompsonScheduling():
             self.mean_constant = mean_constant
         
         self.gp_hyperparams = (self.constant, self.length_scale, self.noise, self.mean_constant)
+        if self.parameter_free == True:
+            self.merge_constant = torch.min(self.length_scale).item()
+
         # check if we want our constraints based on these hyperparams
         if constraints is True:
             self.model.define_constraints(self.length_scale, self.mean_constant, self.constant)
@@ -240,6 +244,11 @@ class AdaptiveThompsonScheduling():
                 self.model.optim_hyperparams()
                 self.gp_hyperparams = self.model.current_hyperparams()
                 print(f'New hyperparams: {self.model.current_hyperparams()}')
+                # update value of epsilon
+                if self.parameter_free == True:
+                    length_scale = self.gp_hyperparams[1]
+                    self.merge_constant = torch.min(length_scale).item()
+                    print(f'New $\epsilon = ${self.merge_constant}')
         # update current temperature and current time
         self.current_temp = np.array(query).reshape(1, -1)
         self.current_time = self.current_time + 1
