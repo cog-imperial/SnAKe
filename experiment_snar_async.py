@@ -22,6 +22,8 @@ budget = 100
 epsilon = float(sys.argv[3])
 delay = int(sys.argv[4])
 
+epsilon = 'lengthscale'
+
 function_number = 0
 
 print(method, run_num, budget, epsilon)
@@ -30,7 +32,7 @@ print(method, run_num, budget, epsilon)
 assert method in ['EaS', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
 assert delay in [0, 1, 2, 3], \
     'Delay must be integer in [0, 1, 2, 3]'
-assert epsilon in [0, 0.1, 0.25, 1], \
+assert epsilon in [0, 0.1, 0.25, 1, 'lengthscale'], \
     'Epsilon must be in [0, 0.1, 0.25, 1]'
 
 if delay == 0:
@@ -104,6 +106,9 @@ X, Y = mod.run_optim(verbose = True)
 
 print(X)
 print(np.array(Y))
+
+if epsilon == 'lengthscale':
+    epsilon = 'l'
 
 if method == 'EaS':
     folder_inputs = 'experiment_results_snar_async/' + f'{epsilon}-EaS/' + f'/delay{delay}/' + '/inputs/'
