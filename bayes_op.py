@@ -1,15 +1,13 @@
-from botorch import sampling
 import numpy as np
 import torch
 from gp_utils import BoTorchGP
 from botorch.acquisition.analytic import ExpectedImprovement, ProbabilityOfImprovement
-from botorch.sampling import IIDNormalSampler
 from botorch.optim.initializers import initialize_q_batch_nonneg
 from sampling import EfficientThompsonSampler
 import sobol_seq
 
 '''
-This script includes all Bayesian Optimization methods we compared in the paper
+This script implements all Bayesian Optimization methods we compared in the paper.
 '''
 
 class UCBwLP():
