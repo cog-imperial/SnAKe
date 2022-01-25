@@ -18,7 +18,7 @@ python experiment_async 'method' 'function_number' 'run_number' 'budget' 'epsilo
 
 Where:
 
-method - 'EaS', 'UCBwLP', 'TS', 'Random'
+method - 'SnAKe', 'UCBwLP', 'TS', 'Random'
 function number - integer between 0 and 5
 run number - any integer, in experiments we used 1-10 inclusive
 budget - integer in [100, 250]
@@ -39,7 +39,7 @@ time_delay = int(sys.argv[7])
 print(method, function_number, run_num, budget, epsilon, cost_func, time_delay)
 
 # Make sure problem is well defined
-assert method in ['EaS', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
+assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
 assert function_number in range(6), \
     'Function must be integer between 0 and 5'
 assert budget in [100, 250], \
@@ -99,7 +99,7 @@ hypers = gp_model.current_hyperparams()
 env = NormalDropletFunctionEnv(func, budget, max_batch_size = time_delay)
 
 # Choose the correct method
-if method == 'EaS':
+if method == 'SnAKe':
     mod = SnAKe(env, merge_method = 'e-Point Deletion', merge_constant = epsilon, cost_function = cost_function, initial_temp = initial_temp, \
         hp_update_frequency = 25)
 elif method == 'UCBwLP':
@@ -123,7 +123,7 @@ print(np.array(Y))
 if epsilon == 'lengthscale':
     epsilon = 'l'
 
-if method == 'EaS':
+if method == 'SnAKe':
     folder_inputs = 'experiment_results_async/' + f'{epsilon}-EaS/' + func.name + f'/budget{budget + 1}/' + cost_name + f'/delay{time_delay}' + '/inputs/'
     folder_outputs = 'experiment_results_async/' + f'{epsilon}-EaS/' + func.name + f'/budget{budget + 1}/' + cost_name + f'/delay{time_delay}' + '/outputs/'
     file_name = f'run_{run_num}'
