@@ -1,35 +1,41 @@
 import torch
 from gp_utils import BoTorchGP
 from functions import SnAr
-from adaptive_thompson_scheduling import AdaptiveThompsonScheduling, RandomTSP
+from adaptive_thompson_scheduling import SnAKe, RandomTSP
 from bayes_op import UCBwLP, ThompsonSampling
 from temperature_env import NormalDropletFunctionEnv
-from scipy.spatial import distance_matrix
 from cost_functions import max_time_cost
 import numpy as np
 import sys
 import os
 
-# method = 'UCBwLP'
-# run_num = 1
-# budget = 100
-# epsilon = 0.1
-# delay = 2
+'''
+This script was used to get the asynchronous experiment results on synthetic benchmarks.
+
+To reproduce any run, type:
+
+python experiment_async 'method' 'run_number' 'epsilon' 'time_delay'
+
+Where:
+
+method - 'SnAKe', 'UCBwLP', 'TS', 'Random'
+run number - any integer, in experiments we used 1-10 inclusive
+epsilon - integer [0, 0.1, 1.0], alternatively modify the script to set epsilon = 'lengthscale' for ell-SnAKe
+time_delay - integer in [0, 1, 2, 3] corresponding to delays [5, 10, 25, 50]
+'''
 
 method = str(sys.argv[1])
 run_num = int(sys.argv[2])
-budget = 100
 epsilon = float(sys.argv[3])
 delay = int(sys.argv[4])
 
-epsilon = 'lengthscale'
-
+budget = 100
 function_number = 0
 
 print(method, run_num, budget, epsilon)
 
 # Make sure problem is well defined
-assert method in ['EaS', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
+assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
 assert delay in [0, 1, 2, 3], \
     'Delay must be integer in [0, 1, 2, 3]'
 assert epsilon in [0, 0.1, 0.25, 1, 'lengthscale'], \
@@ -89,8 +95,8 @@ env = NormalDropletFunctionEnv(func, budget, max_batch_size = delay)
 
 # Choose the correct method
 # Choose the correct method
-if method == 'EaS':
-    mod = AdaptiveThompsonScheduling(env, merge_method = 'e-Point Deletion', merge_constant = epsilon, cost_function = cost_function, initial_temp = initial_temp, \
+if method == 'SnAKe':
+    mod = SnAKe(env, merge_method = 'e-Point Deletion', merge_constant = epsilon, cost_function = cost_function, initial_temp = initial_temp, \
         hp_update_frequency = 25)
 elif method == 'UCBwLP':
     mod = UCBwLP(env, initial_temp = initial_temp, hp_update_frequency = 25)
@@ -110,7 +116,7 @@ print(np.array(Y))
 if epsilon == 'lengthscale':
     epsilon = 'l'
 
-if method == 'EaS':
+if method == 'SnAKe':
     folder_inputs = 'experiment_results_snar_async/' + f'{epsilon}-EaS/' + f'/delay{delay}/' + '/inputs/'
     folder_outputs = 'experiment_results_snar_async/' + f'{epsilon}-EaS/' + f'/delay{delay}/' + '/outputs/'
     file_name = f'run_{run_num}'
