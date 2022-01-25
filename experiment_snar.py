@@ -10,7 +10,7 @@ import sys
 import os
 
 '''
-This script was used to get the asynchronous experiment results on synthetic benchmarks.
+This script was used to get the synchronous SnAr experiment results.
 
 To reproduce any run, type:
 
@@ -57,7 +57,6 @@ func = functions[function_number]
 budget = budget - 1
 
 # Define cost function
-
 cost_function = lambda x, y: max_time_cost(x, y)
 
 # Define seed, sample initalisation points

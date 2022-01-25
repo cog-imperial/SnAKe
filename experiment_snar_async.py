@@ -10,7 +10,7 @@ import sys
 import os
 
 '''
-This script was used to get the asynchronous experiment results on synthetic benchmarks.
+This script was used to get the asynchronous SnAr experiment results.
 
 To reproduce any run, type:
 
@@ -79,12 +79,10 @@ for i in range(0, x_train.shape[0]):
 
 y_train = np.array(y_train)
 
-# initalise hyper-parameters too
 # Train and set educated guess of hyper-parameters
 gp_model = BoTorchGP(lengthscale_dim = dim)
 
 gp_model.fit_model(x_train, y_train)
-#gp_model.set_hyperparams(hyperparams=(2, 1, 1e-4, 0))
 gp_model.optim_hyperparams()
 
 hypers = gp_model.current_hyperparams()
@@ -93,7 +91,6 @@ print('Initial hyper-parameters:', hypers)
 # Define Normal BayesOp Environment without delay
 env = NormalDropletFunctionEnv(func, budget, max_batch_size = delay)
 
-# Choose the correct method
 # Choose the correct method
 if method == 'SnAKe':
     mod = SnAKe(env, merge_method = 'e-Point Deletion', merge_constant = epsilon, cost_function = cost_function, initial_temp = initial_temp, \
