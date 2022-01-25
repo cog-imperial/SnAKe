@@ -3,18 +3,18 @@ Repository that includes the code for the paper: "SnAKe: Bayesian Optimization w
 
 The code allows for reproducibility of the results and figures shown in the paper. To reproduce any experimental run, use the corresponding experiment script, these are: 
 
-- experiment.py (synchronous, synthetic benchmark)
-- experiment_async.py (asynchronous, synthetic benchmark)
-- experiment_snar.py (synchronous, SnAr benchmark)
-- experiment_snar_async.py (asynchronous, SnAr benchmark)
+- experiment.py : synchronous, synthetic benchmark
+- experiment_async.py : asynchronous, synthetic benchmark
+- experiment_snar.py : synchronous, SnAr benchmark
+- experiment_snar_async.py : asynchronous, SnAr benchmark
 
 For the figures you can use:
 
-- resampling_vs_pd_figure.py: Figure 2 and 9
-- create_graph.py: Figure 3
-- experiment_pt.py: Figure 7 and 8: 
+- resampling_vs_pd_figure.py : Figure 2 and 9
+- create_graph.py : Figure 3
+- experiment_pt.py : Figure 7 and 8: 
 
-As a guide for the rest of the files:
+The rest of the files correspond to:
 
 - adaptive_thompson_scheduling.py : Contains the main implementation of SnAKe, and the Random + TSP baseline.
 - bayes_op.py : Contains the implementation of classical Bayesian Optimization methods.
