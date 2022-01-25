@@ -1,12 +1,6 @@
 import numpy as np
-from numpy.core.fromnumeric import size
 import torch
-
-import matplotlib.pyplot as plt
 from math import pi
-
-from gp_utils import BoTorchGP
-import time
 
 class EfficientThompsonSampler():
     def __init__(self, model, num_of_multistarts = 5, num_of_bases = 1024, num_of_samples = 1):
@@ -173,35 +167,3 @@ class EfficientThompsonSampler():
         # return the best one for each sample, without gradients
         X_out = X[best_idx, range(0, self.num_of_samples), :]
         return X_out.detach()
-
-
-
-if __name__ == '__main__':
-    num_of_samples = 250
-    x_grid = np.linspace(0, 1, 101).reshape(-1, 1)
-    y_grid = np.sin(10 * x_grid) * np.exp(-(x_grid-0.7)**2)
-    x_train = np.linspace(0.1, 0.6, 7).reshape(-1, 1)
-    y_train = np.sin(10 * x_train) * np.exp(-(x_train-0.7)**2)
-    hyperparams = (0.6, 0.1, 1e-4)
-    model = BoTorchGP()
-    model.fit_model(x_train, y_train, previous_hyperparams=hyperparams)
-    TS = EfficientThompsonSampler(model, num_of_samples = num_of_samples, num_of_multistarts = 10)
-    TS.create_sample()
-    X = TS.generate_candidates()
-    X = X.detach().reshape(-1)
-    sample = []
-    TS.num_of_multistarts = 1
-    for x_test in x_grid:
-        x_test = x_test.repeat(num_of_samples).reshape(1, num_of_samples, 1)
-        s = TS.query_sample(x_test)
-        sample.append(s.detach().numpy().reshape(-1))
-    
-    mean, sd = model.posterior(x_grid)
-    mean, sd = mean.detach(), sd.detach()
- #   plt.plot(x_grid, sample, linewidth = 0.5, color = 'r')
-    plt.plot(x_grid, y_grid, '-k')
-    plt.vlines(X, ymin = -1, ymax=1, linestyles='dashed', linewidth = 0.5)
-    plt.scatter(x_train, y_train, c = 'orange', marker= 'x')
-    plt.plot(x_grid, mean, 'b')
-    plt.fill_between(x_grid.reshape(-1), mean - 2 * sd, mean + 2 * sd, alpha = 0.2, color = 'b')
-    plt.show()
