@@ -1,24 +1,20 @@
-from networkx.algorithms.approximation.traveling_salesman import traveling_salesman_problem
 import numpy as np
-import math
-from numpy.lib.arraysetops import unique
-from gp_utils import SklearnGP, BoTorchGP
-from temperature_env import NormalDropletFunctionEnv
-from functions import BraninFunction, ConvergenceTest
-import matplotlib.pyplot as plt
-# newtorkx idea
+from gp_utils import BoTorchGP
 import networkx as nx
 from scipy.spatial import distance_matrix
 from scipy.linalg import norm
 from scipy.stats.qmc import Sobol
 import sobol_seq
 from itertools import chain
-from bayes_op import UCBwLP, ThompsonSampling
 from sampling import EfficientThompsonSampler
 import torch
-import time
 
-class AdaptiveThompsonScheduling():
+'''
+This python file implements the main method, SnAKe. It also has a class that implements a baseline consisting of a Random sample
+which is then ordered by approximately solving the Travelling Salesman Problem.
+'''
+
+class SnAKe():
     def __init__(self, env, initial_temp = None, \
         max_change = None, \
             gen_animation = False, \
@@ -28,7 +24,7 @@ class AdaptiveThompsonScheduling():
                             num_of_multistarts = 10, \
                                 cost_function = None):
         ''' 
-        Method for Etch a Sketch Bayesian Optimization (previously called Adaptive Thompson Scheduling). For the code, we call
+        Method for SnAKe (previously called Adaptive Thompson Scheduling). For the code, we call
         'Temperature' all the variables that incur input cost, they should always be the first variables in the system, that is:
         X[:self.t_dim] - all variables that incur input cost
         X[self.t_dim:] - all variables that incur no input cost (there are self.x_dim of these ones)
@@ -83,8 +79,11 @@ class AdaptiveThompsonScheduling():
         # parameters of deletion method
         self.merge_method = merge_method
         self.merge_constant = merge_constant
+        # check if we are using non-parametric ell-SnAKe
         if self.merge_constant == 'lengthscale':
             self.parameter_free = True
+        else:
+            self.parameter_free = False
         # cost function
         if cost_function is None:
             self.cost_function = distance_matrix
@@ -639,215 +638,3 @@ class RandomTSP():
         new_path_idx = list(chain.from_iterable(expanded_path_idx))
         # finally, update query plan
         self.query_plan = self.unique_samples[new_path_idx, :]
-
-if __name__ == '__main__':
-
-    exp = '1D'
-
-    if exp == '1D':
-
-        budget = 100
-        max_batch_size = 1
-        epsilon_list = [0, 0.1]
-        methods = ['Resampling', 'e-Point Deletion']
-        colors = ['b', 'r']
-        max_change = None
-
-        fig, ax = plt.subplots(nrows = 1, ncols = 1)
-        fig.set_figheight(4)
-        fig.set_figwidth(10)
-        #title = f'Budget = {budget} : Time delay = {max_batch_size - 1}'
-        #fig.suptitle(title)
-        pt = 0.74
-        escape_prediction = budget * pt
-
-        optimum_global = 0.78125
-        optimum_local = 0.15625
-        optimums = [optimum_local, optimum_global]
-
-        ax.vlines(optimum_local, ymin = 0, ymax = budget, colors = 'k', linestyles = '--', linewidth = 2, label = 'Optimums')
-        ax.vlines(optimum_global, ymin = 0, ymax = budget, colors = 'k', linestyles = '--', linewidth = 2)
-
-        np.random.seed(2023)
-        torch.manual_seed(2023)
-
-        for i in range(0, len(epsilon_list)):
-            initial_temp = np.array([0]).reshape(1, 1)
-            epsilon = epsilon_list[i]
-            #np.random.seed(47)
-            func = ConvergenceTest()
-            env = NormalDropletFunctionEnv(func, budget = budget, max_batch_size = max_batch_size)
-            model = AdaptiveThompsonScheduling(env, max_change = max_change, merge_method = methods[i], \
-                merge_constant = epsilon, initial_temp = initial_temp, num_of_multistarts = 50)
-            model.set_hyperparams(constant = 0.6, lengthscale = torch.tensor(0.1).reshape(-1, 1), noise = 1e-5, mean_constant=0)
-            X, Y = model.run_optim(verbose = True)
-            target_func = []
-            grid = np.sort(model.global_grid0, axis = 0)
-
-            for t in grid:
-                target_func.append(func.query_function(t))
-
-            times = np.array(range(0, env.budget+1)).reshape(-1, 1)
-            # show posterior too
-            posterior_mean, posterior_sd = model.model.posterior(grid)
-            if methods[0] == 'Resampling':
-                title = f'No Point Deletion'
-            else:
-                title = f'$\epsilon$ = {epsilon}.'
-            '''
-            ax[0].set_title(title) #do this for more in the list
-            ax[0].set_title(title)
-            ax[0].scatter(X, Y, s = 50, marker = 'x', c = 'r')
-            if i == 0:
-                ax[0].set_ylabel('Observations')
-            ax[0].plot(grid, target_func, '--k', label = 'True function')
-            ax[0].plot(grid, posterior_mean.detach().numpy(), 'b', label = 'GP mean')
-            ax[0].fill_between(grid.reshape(-1), posterior_mean.detach() - 1.96 * posterior_sd.detach(), \
-                 posterior_mean.detach() + 1.96 * posterior_sd.detach(), alpha = 0.2)
-            ax[0].set_xlim(0, 1)
-            ax[0].grid()
-            ax[0].legend(loc = 'lower right')
-            ax[1].plot(X, times)
-            ax[1].set_xlabel('x')
-            if i == 0:
-                ax[1].set_ylabel('Iteration')
-            ax[1].set_xlim(0, 1)
-            ax[1].grid()
-            ax[1].hlines(escape_prediction, 0, 1, colors = 'g', linestyles = '--', label = 'Escape Prediction')
-            ax[1].legend(loc = 'lower right')
-            '''
-            if i == 1:
-                label = '0.1-Point Deletion'
-            else:
-                label = 'Resampling'
-
-            ax.plot(X, times, c = colors[i], label = label, linewidth = 2)
-            ax.set_xlabel('x', fontsize = 20)
-            if i == 0:
-                ax.set_ylabel('Iteration', fontsize = 20)
-            ax.set_xlim(0, 1)
-            ax.grid()
-            if i == 1:
-                ax.hlines(escape_prediction, 0, 1, colors = colors[i], linestyles = '--', label = 'Escape Prediction', linewidth = 2)
-
-            '''
-            ax.scatter(X, Y, s = 100, marker = 'x', c = 'k')
-            if i == 0:
-                ax.set_ylabel('f(x)', fontsize = 20)
-            ax.set_xlabel('x', fontsize = 20)
-            ax.plot(grid, target_func, '--k', label = 'True function', linewidth = 2)
-            ax.plot(grid, posterior_mean.detach().numpy(), 'r', label = 'GP mean', linewidth = 2)
-            ax.fill_between(grid.reshape(-1), posterior_mean.detach() - 1.96 * posterior_sd.detach(), \
-                 posterior_mean.detach() + 1.96 * posterior_sd.detach(), alpha = 0.2, color = 'r')
-            ax.set_xlim(0, 1)
-            ax.grid()
-            ax.legend(loc = 'lower right', framealpha = 0.8, prop={'size': 20})
-
-            plt.xticks(fontsize = 20)
-            plt.yticks(fontsize = 20)
-            '''
-            
-        ax.legend(loc = 'lower right', framealpha = 0.8, prop={'size': 20})
-        plt.xticks(fontsize = 20)
-        plt.yticks(fontsize = 20)
-
-        filename = 'PDvsRS_both_paths_w_optims' + '.pdf'
-        plt.savefig(filename, bbox_inches = 'tight')
-        plt.show()
-    
-    if exp == '2D':
-
-        budget = 250
-        max_batch_size = 10
-        max_change_list = [None]
-
-        fig, ax = plt.subplots(nrows = 2, ncols = 3, gridspec_kw={'height_ratios': [6, 3], 'width_ratios': [3, 6, 3]})
-        fig.set_figheight(6)
-        fig.set_figwidth(8 * len(max_change_list))
-        title = f'Budget = {budget} : Time delay = {max_batch_size}'
-        fig.suptitle(title)
-
-        for i in range(0, len(max_change_list)):
-            np.random.seed(47)
-            max_change = max_change_list[i]
-            initial_temp = np.array([0.5, 0.5]).reshape(1, -1)
-            func = BraninFunction(random=True)
-            env = NormalDropletFunctionEnv(func, budget = budget, max_batch_size = max_batch_size)
-            model = ThompsonSampling(env)
-            #model = AdaptiveThompsonScheduling(env, max_change = max_change, initial_temp = initial_temp)
-            X, Y = model.run_optim(verbose = True)
-
-            #model.reset_model(initial_constant = 0.01)
-            #Xo, Yo = model.run_optim()
-
-            x_grid = np.linspace(0, 1, 101)
-            y_grid = np.linspace(0, 1, 101)
-            xmesh, ymesh = np.meshgrid(x_grid, y_grid)
-            lambda_func = lambda x, y: np.sin(5*(x - func.mu1)) * np.cos(5*(y - func.mu2)) * np.exp((x-0.5)**2 / 2) * np.exp((y-0.5)**2 / 2)
-            z_grid = lambda_func(xmesh, ymesh)
-
-            times = np.array(range(0, env.budget+1)).reshape(-1, 1)
-
-            #title = f'$\Delta x$ = {max_change}.'
-            ax[0, 0].plot(times, X[:, 1])
-            ax[0, 0].set_xlabel('time')
-            ax[0, 0].set_ylabel('$x_2$')
-            ax[0, 0].set_ylim(0, 1)
-            #ax[0, i].scatter(X[:, 0], X[:, 1], s = 50, marker = 'x', c = 'r')
-            ax[1, 1].plot(X[:, 0], times)
-            ax[1, 1].set_xlabel('$x_1$')
-            ax[1, 1].set_ylabel('times')
-            ax[1, 1].set_xlim(0, 1)
-
-            ax[1, 0].axis('off')
-            ax[1, 2].axis('off')
-            ax[0, 2].axis('off')
-
-            ax[0, 1].plot(X[:, 0], X[:, 1], marker = 'x', c = 'r', alpha = 0.4)
-            #ax[i].plot(Xo[:, 0], Xo[:, 1], marker = 'x', c = 'b', alpha = 0.2)
-            b = ax[0, 1].contourf(x_grid, y_grid, z_grid, levels = 50)
-            fig.colorbar(b, ax = ax[0, 2])
-            ax[0, 1].set_xlim(0, 1)
-            ax[0, 1].set_ylim(0, 1)
-            ax[0, 1].grid()
-            #ax[0, 1].set_xlabel('$x_1$')
-            #ax[0, 1].set_ylabel('$x_2$')
-            
-
-        plt.show()
-    
-    if exp == 'UCBwLP':
-
-        budget = 100
-        max_batch_size = 10
-
-        fig = plt.figure(figsize=(15, 8))
-        ax = fig.add_subplot(111)
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
-
-        #func = TwoDSinCosine(random = False)
-        func = BraninFunction()
-        x_grid = np.linspace(0, 1, 101)
-        y_grid = np.linspace(0, 1, 101)
-        xmesh, ymesh = np.meshgrid(x_grid, y_grid)
-        #lambda_func = lambda x, y: np.sin(5*(x - func.mu1)) * np.cos(5*(y - func.mu2)) * np.exp((x-0.5)**2 / 2) * np.exp((y-0.5)**2 / 2)
-        lambda_func = lambda x, y: -((15*y - 5.1 * (15*x-5)**2 / (4 * math.pi**2) + 5 * (15*x-5) / math.pi - 6)**2 \
-            + (10 - 10 / (8 * math.pi)) * np.cos((15*x-5)) - 44.81)/51.95
-        z_grid = lambda_func(xmesh, ymesh)
-
-        real_path, = ax.plot([], [], "r", label = "Real path")
-
-        func = BraninFunction()
-        env = NormalDropletFunctionEnv(func, budget, max_batch_size)
-        model = UCBwLP(env)
-        X, Y = model.run_optim(verbose = True)
-
-        contour_plot = ax.contourf(x_grid, y_grid, z_grid, levels = 100)
-        fig.colorbar(contour_plot, ax = ax)
-
-        real_path.set_data(X[:, 0], X[:, 1])
-        ax.scatter(X[:, 0], X[:, 1], c = 'k', marker = 'x', s = 25)
-
-        plt.show()
-        'hola'
