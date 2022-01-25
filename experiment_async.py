@@ -9,14 +9,25 @@ import numpy as np
 import sys
 import os
 
-# method = 'EaS'
-# function_number = 1
-# run_num = 10
-# budget = 100
-# epsilon = 'lengthscale'
-# cost_func = 2
-# time_delay = 10
+'''
+This script was used to get the asynchronous experiment results on synthetic benchmarks.
 
+To reproduce any run, type:
+
+python experiment_async 'method' 'function_number' 'run_number' 'budget' 'epsilon' 'cost_func' 'time_delay'
+
+Where:
+
+method - 'EaS', 'UCBwLP', 'TS', 'Random'
+function number - integer between 0 and 5
+run number - any integer, in experiments we used 1-10 inclusive
+budget - integer in [100, 250]
+epsilon - integer [0, 0.1, 1.0], alternatively modify the script to set epsilon = 'lengthscale' for ell-SnAKe
+cost_func - 1, 2, 3 corresponding to 1-norm, 2-norm, inf-norm
+time_delay - integer in [10, 25]
+'''
+
+# take arguments from terminal
 method = str(sys.argv[1])
 function_number = int(float(sys.argv[2]))
 run_num = int(sys.argv[3])
@@ -24,8 +35,6 @@ budget = int(sys.argv[4])
 epsilon = float(sys.argv[5])
 cost_func = int(sys.argv[6])
 time_delay = int(sys.argv[7])
-
-epsilon = 'lengthscale'
 
 print(method, function_number, run_num, budget, epsilon, cost_func, time_delay)
 
@@ -78,7 +87,6 @@ for i in range(0, x_train.shape[0]):
 
 y_train = np.array(y_train)
 
-# initalise hyper-parameters too
 # Train and set educated guess of hyper-parameters
 gp_model = BoTorchGP(lengthscale_dim = dim)
 
@@ -104,11 +112,14 @@ elif method == 'Random':
 mod.set_hyperparams(constant = hypers[0], lengthscale = hypers[1], noise = hypers[2], mean_constant = hypers[3], \
             constraints = True)
 
+# run optimization
 X, Y = mod.run_optim(verbose = True)
 
+# print results
 print(X)
 print(np.array(Y))
 
+# save results
 if epsilon == 'lengthscale':
     epsilon = 'l'
 
@@ -128,9 +139,6 @@ else:
 # create directories if they exist
 os.makedirs(folder_inputs, exist_ok = True)
 os.makedirs(folder_outputs, exist_ok = True)
-
-print(X.shape[0])
-print(np.array(Y).shape[0])
 
 np.save(folder_inputs + file_name, X)
 np.save(folder_outputs + file_name, np.array(Y))
