@@ -1,7 +1,7 @@
 import torch
 from gp_utils import BoTorchGP
 from functions import BraninFunction, Hartmann6D, Hartmann4D, Ackley4D, Michalewicz2D, Perm10D
-from adaptive_thompson_scheduling import AdaptiveThompsonScheduling, RandomTSP
+from adaptive_thompson_scheduling import AdaptiveThompsonScheduling, RandomTSP, SnAKe
 from bayes_op import UCBwLP, oneExpectedImprovement, oneProbabilityOfImprovement
 from temperature_env import NormalDropletFunctionEnv
 from scipy.spatial import distance_matrix
@@ -9,12 +9,22 @@ import numpy as np
 import sys
 import os
 
-#method = 'EaS'
-#function_number = 6
-#run_num = 10
-#budget = 50
-#epsilon = 0
-#cost_func = 2
+'''
+This script was used to get the synchronous experiment results on synthetic benchmarks.
+
+To reproduce any run, type:
+
+python experiment_async 'method' 'function_number' 'run_number' 'budget' 'epsilon' 'cost_func' 
+
+Where:
+
+method - 'SnAKe', 'EI', 'UCB', 'PI', 'Random'
+function number - integer between 0 and 5
+run number - any integer, in experiments we used 1-10 inclusive
+budget - integer in [15, 100, 100, 250]
+epsilon - integer [0, 0.1, 1.0], alternatively modify the script to set epsilon = 'lengthscale' for ell-SnAKe
+cost_func - 1, 2, 3 corresponding to 1-norm, 2-norm, inf-norm
+'''
 
 method = str(sys.argv[1])
 function_number = int(float(sys.argv[2]))
@@ -28,13 +38,13 @@ epsilon = 'lengthscale'
 print(method, function_number, run_num, budget, epsilon, cost_func)
 
 # Make sure problem is well defined
-assert method in ['EaS', 'EI', 'UCB', 'PI', 'Random'], 'Method must be string in [EaS, EI, UCB, PI, Random]'
-assert function_number in range(7), \
-    'Function must be integer between 0 and 6'
+assert method in ['SnAKe', 'EI', 'UCB', 'PI', 'Random'], 'Method must be string in [SnAKe, EI, UCB, PI, Random]'
+assert function_number in range(6), \
+    'Function must be integer between 0 and 5'
 assert budget in [15, 50, 100, 250], \
     'Budget must be integer in [15, 50, 100, 250]'
-assert epsilon in [0, 0.1, 0.25, 1], \
-    'Epsilon must be in [0, 0.1, 0.25, 1]'
+assert epsilon in [0, 0.1, 0.25, 1, 'lengthscale'], \
+    'Epsilon must be in [0, 0.1, 0.25, 1, lengthscale]'
 assert cost_func in [1, 2, 3], \
     'Cost function must be integer in [1, 2, 3] (where 3 corresponds to infinity norm)'
 
@@ -74,12 +84,10 @@ for i in range(0, x_train.shape[0]):
 
 y_train = np.array(y_train)
 
-# initalise hyper-parameters too
 # Train and set educated guess of hyper-parameters
 gp_model = BoTorchGP(lengthscale_dim = dim)
 
 gp_model.fit_model(x_train, y_train)
-#gp_model.set_hyperparams(hyperparams=(2, 1, 1e-4, 0))
 gp_model.optim_hyperparams()
 
 hypers = gp_model.current_hyperparams()
@@ -89,8 +97,8 @@ print('Initial hyper-parameters:', hypers)
 env = NormalDropletFunctionEnv(func, budget, max_batch_size = 1)
 
 # Choose the correct method
-if method == 'EaS':
-    mod = AdaptiveThompsonScheduling(env, merge_method = 'e-Point Deletion', merge_constant = epsilon, cost_function = cost_function, initial_temp = initial_temp, \
+if method == 'SnAKe':
+    mod = SnAKe(env, merge_method = 'e-Point Deletion', merge_constant = epsilon, cost_function = cost_function, initial_temp = initial_temp, \
         hp_update_frequency = 25)
 elif method == 'EI':
     mod = oneExpectedImprovement(env, initial_temp = initial_temp, hp_update_frequency = 25)
