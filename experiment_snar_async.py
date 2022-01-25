@@ -35,7 +35,7 @@ function_number = 0
 print(method, run_num, budget, epsilon)
 
 # Make sure problem is well defined
-assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
+assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [SnAKe, UCBwLP, TS, Random]'
 assert delay in [0, 1, 2, 3], \
     'Delay must be integer in [0, 1, 2, 3]'
 assert epsilon in [0, 0.1, 0.25, 1, 'lengthscale'], \

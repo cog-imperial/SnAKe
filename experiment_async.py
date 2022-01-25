@@ -39,7 +39,7 @@ time_delay = int(sys.argv[7])
 print(method, function_number, run_num, budget, epsilon, cost_func, time_delay)
 
 # Make sure problem is well defined
-assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [EaS, UCBwLP, TS, Random]'
+assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [SnAKe, UCBwLP, TS, Random]'
 assert function_number in range(6), \
     'Function must be integer between 0 and 5'
 assert budget in [100, 250], \
