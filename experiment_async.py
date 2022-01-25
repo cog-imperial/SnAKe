@@ -1,7 +1,7 @@
 import torch
 from gp_utils import BoTorchGP
 from functions import BraninFunction, Ackley4D, Hartmann3D, Michalewicz2D, Hartmann4D, Hartmann6D
-from adaptive_thompson_scheduling import AdaptiveThompsonScheduling, RandomTSP
+from adaptive_thompson_scheduling import SnAKe, RandomTSP
 from bayes_op import UCBwLP, ThompsonSampling
 from temperature_env import NormalDropletFunctionEnv
 from scipy.spatial import distance_matrix
@@ -100,7 +100,7 @@ env = NormalDropletFunctionEnv(func, budget, max_batch_size = time_delay)
 
 # Choose the correct method
 if method == 'EaS':
-    mod = AdaptiveThompsonScheduling(env, merge_method = 'e-Point Deletion', merge_constant = epsilon, cost_function = cost_function, initial_temp = initial_temp, \
+    mod = SnAKe(env, merge_method = 'e-Point Deletion', merge_constant = epsilon, cost_function = cost_function, initial_temp = initial_temp, \
         hp_update_frequency = 25)
 elif method == 'UCBwLP':
     mod = UCBwLP(env, initial_temp = initial_temp, hp_update_frequency = 25)
