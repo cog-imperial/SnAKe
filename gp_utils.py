@@ -1,60 +1,32 @@
 import numpy as np
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import ConstantKernel, RBF
 import torch
 from gpytorch.priors import SmoothedBoxPrior
 import gpytorch
 from botorch.models import SingleTaskGP
-from gpytorch.constraints import GreaterThan, Interval, LessThan
+from gpytorch.constraints import GreaterThan
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from torch.optim import Adam
 
-class SklearnGP():
-
-    def __init__(self, kernel = None, optimise_hyper_params = True, initial_lengthscale = 1, \
-         initial_constant = 1, noise_assumption = 1e-10):
-
-        self.initial_lengthscale = initial_lengthscale
-        self.initial_constant = initial_constant
-
-        if optimise_hyper_params == True:
-            constant_bounds = (0.0001, 100)
-            length_scale_bounds = (0.00001, 100)
-        else:
-            constant_bounds = 'fixed'
-            length_scale_bounds = 'fixed'
-
-        if kernel == None:
-            self.kernel = ConstantKernel(constant_value = self.initial_constant, constant_value_bounds = constant_bounds) \
-                * RBF(length_scale = self.initial_lengthscale, length_scale_bounds = length_scale_bounds)
-        else:
-            self.kernel = kernel
-        
-        self.model = GaussianProcessRegressor(kernel = self.kernel, alpha = noise_assumption)
-
-        self.sample_int = np.random.randint(0, 10000000)
-    
-    def fit_data(self, X, Y):
-        self.model.fit(X, Y)
-    
-    def posterior(self, X):
-        mean, std = self.model.predict(X, return_std=True)
-        return mean, std
-    
-    def sample(self, X, new_sample = False, n_samples = 1):
-        # if we have a new sample draw a new seed
-        if new_sample == True:
-            self.sample_int = np.random.randint(0, 10000000)
-        return self.model.sample_y(X, n_samples = n_samples, random_state = self.sample_int)
+'''
+This python file defines the Gaussian Process class which is used in all optimization methods.
+'''
 
 class BoTorchGP():
+    '''
+    Our GP implementation using GPyTorch, to use with BoTorch models and SnAKe.
+    '''
     def __init__(self, kernel = None, lengthscale_dim = None):
+        # initialize kernel
         if kernel == None:
             self.kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims = lengthscale_dim))
+        # initialize if we should set contrainst and if we have a multi-dimensional lengthscale
         self.constraints_set = False
         self.lengthscale_dim = lengthscale_dim
         
     def fit_model(self, train_x, train_y, train_hyperparams = False, previous_hyperparams = None):
+        '''
+        This function fits the GP model with the given data.
+        '''
         # transform data to tensors
         self.train_x = torch.tensor(train_x)
         train_y = np.array(train_y)
@@ -67,6 +39,7 @@ class BoTorchGP():
         # marginal likelihood
         self.mll = ExactMarginalLogLikelihood(likelihood = self.model.likelihood, model = self.model)
 
+        # check if we should set hyper-parameters or if we should optimize them
         if previous_hyperparams is not None:
             self.outputscale = float(previous_hyperparams[0])
             self.lengthscale = previous_hyperparams[1].detach()
@@ -78,6 +51,9 @@ class BoTorchGP():
             self.optim_hyperparams()
     
     def define_constraints(self, init_lengthscale, init_mean_constant, init_outputscale):
+        '''
+        This model defines constraints on hyper-parameters as defined in the Appendix of the paper.
+        '''
         # define lengthscale bounds
         self.lengthscale_ub = 2 * init_lengthscale
         self.lengthscale_lb = init_lengthscale / 2
@@ -92,6 +68,9 @@ class BoTorchGP():
 
 
     def optim_hyperparams(self, num_of_epochs = 500, verbose = False):
+        '''
+        We can optimize the hype-parameters by maximizing the marginal log-likelihood.
+        '''
         # set constraints if there are any
         if self.constraints_set is True:
             if verbose:
@@ -134,6 +113,9 @@ class BoTorchGP():
          )
     
     def current_hyperparams(self):
+        '''
+        Returns the current values of the hyper-parameters.
+        '''
         noise = self.model.likelihood.noise.item()
         lengthscale = self.model.covar_module.base_kernel.lengthscale.detach()
         outputscale = self.model.covar_module.outputscale.item()
@@ -141,6 +123,9 @@ class BoTorchGP():
         return (outputscale, lengthscale, noise, mean_constant)
 
     def set_hyperparams(self, hyperparams = None):
+        '''
+        This function allows us to set the hyper-parameters.
+        '''
         if hyperparams == None:
             hypers = {
                 'likelihood.noise_covar.noise': torch.tensor(self.noise),
@@ -158,6 +143,9 @@ class BoTorchGP():
         self.model.initialize(**hypers)
     
     def posterior(self, test_x):
+        '''
+        Calculates the posterior of the GP, returning the mean and standard deviation at a corresponding set of points.
+        '''
         if type(test_x) is not torch.Tensor:
             test_x = torch.tensor(test_x).double()
         self.model.eval()
@@ -167,42 +155,12 @@ class BoTorchGP():
         return mean, std
     
     def sample(self, test_x, n_samples = 1):
+        '''
+        Allows us to samples the GP. For SnAKe and Thompson Sampling, we instead used EfficientThompsonSampler method.
+        '''
         self.model.eval()
         test_x = torch.tensor(test_x)
         with torch.no_grad():
             model_posterior = self.model(test_x)
             samples = model_posterior.sample(sample_shape = torch.Size([n_samples]))
         return samples.numpy()
-
-
-
-
-if __name__ == '__main__':
-    # use regular spaced points on the interval [0, 1]
-    train_X = torch.linspace(0, 0.5, 15)
-    test_X = torch.linspace(0, 1, 100)
-    # training data needs to be explicitly multi-dimensional
-    train_X = train_X.reshape(-1, 1)
-    test_X = test_X.reshape(-1, 1)
-
-    # sample observed values and add some synthetic noise
-    train_Y = torch.sin(train_X * (2 * 3.1416)) + 0.1 * torch.randn_like(train_X)
-
-    model = BoTorchGP()
-    model.fit_model(train_X, train_Y, train_hyperparams=True, previous_hyperparams = (1, .1, .1))
-    model.optim_hyperparams(verbose=True, num_of_epochs = 150)
-
-    mean, std = model.posterior(test_X)
-    mean = mean.detach()
-    std = std.detach()
-    
-    import matplotlib.pyplot as plt
-
-    samples = model.sample(test_X, n_samples = 10).transpose(0, 1)
-
-    plt.fill_between(test_X.reshape(-1), mean - 1.96*std, mean + 1.96*std, alpha = 0.5)
-    plt.plot(test_X.reshape(-1), mean)
-    plt.scatter(train_X, train_Y, c = 'r', marker = 'x')
-    plt.plot(test_X, samples)
-    plt.show()
-    'hola'
