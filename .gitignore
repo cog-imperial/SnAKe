@@ -138,5 +138,4 @@ experiment_results.zip
 .DS_Store
 
 # graph creation
-create_graph.py
 figures/
