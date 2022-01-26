@@ -1,7 +1,7 @@
 import torch
 from gp_utils import BoTorchGP
 from functions import BraninFunction, Hartmann6D, Hartmann4D, Ackley4D, Michalewicz2D, Perm10D
-from snake import AdaptiveThompsonScheduling, RandomTSP, SnAKe
+from snake import RandomTSP, SnAKe
 from bayes_op import UCBwLP, oneExpectedImprovement, oneProbabilityOfImprovement
 from temperature_env import NormalDropletFunctionEnv
 from scipy.spatial import distance_matrix
@@ -21,7 +21,7 @@ Where:
 method - 'SnAKe', 'EI', 'UCB', 'PI', 'Random'
 function number - integer between 0 and 5
 run number - any integer, in experiments we used 1-10 inclusive
-budget - integer in [15, 100, 100, 250]
+budget - integer in [15, 50, 100, 250]
 epsilon - integer [0, 0.1, 1.0], alternatively modify the script to set epsilon = 'lengthscale' for ell-SnAKe
 cost_func - 1, 2, 3 corresponding to 1-norm, 2-norm, inf-norm
 '''
