@@ -16,7 +16,7 @@ For the figures you can use:
 
 The rest of the files correspond to:
 
-- adaptive_thompson_scheduling.py : Contains the main implementation of SnAKe, and the Random + TSP baseline.
+- snake.py : Contains the main implementation of SnAKe, and the Random + TSP baseline.
 - bayes_op.py : Contains the implementation of classical Bayesian Optimization methods.
 - cost_functions.py : Defines the function used to calculate the cost in the SnAr benchmark.
 - functions.py : Defines all benchmark functions used in the paper.
