@@ -2,7 +2,7 @@ import numpy as np
 from temperature_env import NormalDropletFunctionEnv
 from functions import ConvergenceTest
 import matplotlib.pyplot as plt
-from adaptive_thompson_scheduling import SnAKe
+from snake import SnAKe
 import torch
 
 '''

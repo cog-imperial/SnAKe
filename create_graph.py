@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from adaptive_thompson_scheduling import SnAKe
+from snake import SnAKe
 from functions import BraninFunction
 from temperature_env import NormalDropletFunctionEnv
 import math

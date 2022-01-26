@@ -1,7 +1,7 @@
 import torch
 from gp_utils import BoTorchGP
 from functions import BraninFunction, Ackley4D, Hartmann3D, Michalewicz2D, Hartmann4D, Hartmann6D
-from adaptive_thompson_scheduling import SnAKe, RandomTSP
+from snake import SnAKe, RandomTSP
 from bayes_op import UCBwLP, ThompsonSampling
 from temperature_env import NormalDropletFunctionEnv
 from scipy.spatial import distance_matrix

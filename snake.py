@@ -24,7 +24,7 @@ class SnAKe():
                             num_of_multistarts = 10, \
                                 cost_function = None):
         ''' 
-        Method for SnAKe (previously called Adaptive Thompson Scheduling). For the code, we call
+        Class for implementing SnAKe. For the code, we call
         'Temperature' all the variables that incur input cost, they should always be the first variables in the system, that is:
         X[:self.t_dim] - all variables that incur input cost
         X[self.t_dim:] - all variables that incur no input cost (there are self.x_dim of these ones)

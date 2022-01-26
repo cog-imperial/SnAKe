@@ -1,7 +1,7 @@
 import torch
 from gp_utils import BoTorchGP
 from functions import SnAr
-from adaptive_thompson_scheduling import SnAKe, RandomTSP
+from snake import SnAKe, RandomTSP
 from bayes_op import UCBwLP, oneExpectedImprovement, oneProbabilityOfImprovement
 from temperature_env import NormalDropletFunctionEnv
 from cost_functions import max_time_cost
