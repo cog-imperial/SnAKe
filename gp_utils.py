@@ -50,7 +50,7 @@ class BoTorchGP():
         if train_hyperparams == True:
             self.optim_hyperparams()
     
-    def define_constraints(self, init_lengthscale, init_mean_constant, init_outputscale):
+    def define_constraints(self, init_lengthscale, init_mean_constant, init_outputscale, init_noise = None):
         '''
         This model defines constraints on hyper-parameters as defined in the Appendix of the paper.
         '''
@@ -66,6 +66,12 @@ class BoTorchGP():
 
         self.constraints_set = True
 
+        if init_noise is not None:
+            self.noise_ub = 3 * init_noise
+            self.noise_lb = init_noise / 3
+            self.noise_constraint = True
+        else:
+            self.noise_constraint = False
 
     def optim_hyperparams(self, num_of_epochs = 500, verbose = False):
         '''
@@ -87,6 +93,10 @@ class BoTorchGP():
             # for mean constant
             prior_constant = SmoothedBoxPrior(self.mean_constant_lb, self.mean_constant_ub, 0.001)
             self.model.mean_module.register_prior('Smoothed Box Prior', prior_constant, "constant")
+
+            if self.noise_constraint:
+                prior_noise = SmoothedBoxPrior(self.noise_lb, self.noise_ub, 0.001)
+                self.model.likelihood.register_prior('Smoothed Box Prior', prior_noise, "noise")
         
         # define optimiser
         optimiser = Adam([{'params': self.model.parameters()}], lr=0.01)
