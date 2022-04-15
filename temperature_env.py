@@ -96,7 +96,7 @@ class NormalDropletFunctionEnv():
             if self.x_dim is not None:
                 query_x = self.batch[i]
                 query = np.concatenate((query_t.reshape(1, -1), query_x.reshape(1, -1)), axis = 1).reshape(1, -1)
-                query_out = np.concatenate((query_t.reshape(1, -1), query_x.reshape(-1, 1)), axis = 1)
+                query_out = np.concatenate((query_t.reshape(1, -1), query_x.reshape(1, -1)), axis = 1)
             # get observations
             obs = self.function.query_function(*query)
             # append to X and Y list
