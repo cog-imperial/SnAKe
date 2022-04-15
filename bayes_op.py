@@ -498,6 +498,9 @@ class oneExpectedImprovement():
         self.domain = np.zeros((self.t_dim,))
         self.domain = np.stack([self.domain, np.ones(self.t_dim, )], axis=1)
         
+        # initialize max value observed
+        self.max_value = -100
+
         self.initialise_stuff()
     
     def set_hyperparams(self, constant = None, lengthscale = None, noise = None, mean_constant = None, constraints = False):
@@ -669,9 +672,140 @@ class oneProbabilityOfImprovement(oneExpectedImprovement):
         hp_update_frequency - how frequently to optimize the hyper-parameters
         '''
         # use Expected Improvement class, only change the acquisition function
-        super().__init__(env, initial_temp=initial_temp, beta=beta, lipschitz_constant=lipschitz_constant, num_of_starts=num_of_starts, num_of_optim_epochs=num_of_optim_epochs, hp_update_frequency=hp_update_frequency)
+        super().__init__(env, initial_temp=initial_temp, num_of_starts=num_of_starts, num_of_optim_epochs=num_of_optim_epochs, hp_update_frequency=hp_update_frequency)
 
     def build_af(self, X):
         # Probability of Improvement using BoTorch
         PI = ProbabilityOfImprovement(self.model.model, best_f = self.max_value)
         return PI(X.unsqueeze(1))
+
+class EIperUnitCost(oneExpectedImprovement):
+    '''
+    We consider the Expected Improvement per unit cost:
+
+    AF_t(x) = EI(x) / (C(x_{t-1}, x) + c)
+
+    where c > 0 is chosen to avoid division by zero.
+
+    See paper intoduction of paper:
+
+    Lee, Eric Hans, et al. "Cost-aware Bayesian optimization." arXiv preprint arXiv:2003.10870 (2020).
+    '''
+
+    def __init__(self, env, initial_temp=None, beta=1.96, lipschitz_constant=20, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None, cost_constant = 1, cost_equation = None):
+        '''
+        Inputs:
+        num_of_starts - number of multi-starts to optimize acquisition function
+        num_of_optim_epochs - number of epochs to optimize acquisition function
+        hp_update_frequency - how frequently to optimize the hyper-parameters
+        '''
+        # use Expected Improvement class, only change the acquisition function
+        super().__init__(env, initial_temp=initial_temp, num_of_starts=num_of_starts, num_of_optim_epochs=num_of_optim_epochs, hp_update_frequency=hp_update_frequency)
+        self.cost_constant = cost_constant
+        if cost_equation is None:
+            self.cost_equation = lambda x, y: torch.norm(x - y, dim = 1)
+        else:
+            self.cost_equation = cost_equation
+
+    def build_af(self, X):
+        # Probability of Improvement using BoTorch
+        current_x = torch.tensor(self.current_temp)
+        cost = self.cost_equation(current_x, X) + self.cost_constant
+        EI = ExpectedImprovement(self.model.model, best_f = self.max_value)
+        return EI(X.unsqueeze(1)) / cost
+
+class TruncatedExpectedImprovement(oneExpectedImprovement):
+    def __init__(self, env, initial_temp=None, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None):
+        super().__init__(env, initial_temp, num_of_starts, num_of_optim_epochs, hp_update_frequency)
+    
+    def optim_loop(self):
+        '''
+        Performs a single loop of the optimisation
+        '''
+        # optimise acquisition function to obtain new queries
+        new_T, new_X = self.optimise_af()
+        # check smallest lengthscale for jump
+        jump_lengthscale = float(torch.min(self.gp_hyperparams[1])) * np.sqrt(self.dim)
+        distance_to_query = np.linalg.norm(new_T - self.current_temp)
+        if distance_to_query > jump_lengthscale:
+            new_T = self.current_temp + (new_T - self.current_temp) / distance_to_query * jump_lengthscale 
+        # check if we have x-variables (i.e. variables with no input cost)
+        if self.x_dim == None:
+            query = new_T
+        else:
+            query = np.concatenate((new_T, new_X), axis = 1)
+        # reformat query
+        query = list(query.reshape(-1))
+        # step in environment
+        obtain_query, self.new_obs = self.env.step(new_T, new_X)
+        # add query to queried batch
+        self.queried_batch.append(query)
+        # update model
+        if self.new_obs is not None:
+            self.X.append(list(obtain_query.reshape(-1)))
+            self.Y.append(self.new_obs)
+            self.max_value = float(max(self.max_value, float(self.new_obs)))
+            self.update_model()
+        # update hyperparams if needed
+        if (self.hp_update_frequency is not None) & (len(self.X) > 0):
+            if len(self.X) % self.hp_update_frequency == 0:
+                self.model.optim_hyperparams()
+                self.gp_hyperparams = self.model.current_hyperparams()
+                print(f'New hyperparams: {self.model.current_hyperparams()}')
+        # update temperature and time
+        self.current_temp = new_T
+        self.current_time = self.current_time + 1
+
+class EIpuLP(UCBwLP):
+    def __init__(self, env, initial_temp=None, beta=None, lipschitz_constant=1, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None, cost_constant = 1, cost_equation = None):
+        super().__init__(env, initial_temp, beta, lipschitz_constant, num_of_starts, num_of_optim_epochs, hp_update_frequency)
+        # initialize cost constant
+        self.cost_constant = cost_constant
+        # max value for EI
+        self.max_value = 0
+        # initialize cost equation
+        if cost_equation is None:
+            self.cost_equation = lambda x, y: torch.norm(x - y)
+        else:
+            self.cost_equation = cost_equation
+    
+    def build_af(self, X):
+        '''
+        This takes input locations, X, and returns the value of the acquisition function
+        '''
+        # check the batch of points being evaluated
+        batch = self.env.temperature_list
+        # if there are no new observations return the prior
+        if self.new_obs is not None:
+            # get expected improvement
+            EI = ExpectedImprovement(self.model.model, self.max_value)
+            af = EI(X.unsqueeze(1))
+            # get mean and standard deviation
+            mean, std = self.model.posterior(X)
+        else:
+            af = torch.tensor(self.mean_constant) - self.max_value
+            mean, std = torch.tensor(self.mean_constant), torch.tensor(self.constant)
+        # add cost
+        current_x = torch.tensor(self.current_temp)
+        cost = self.cost_equation(current_x, X[:, :self.t_dim]) + self.cost_constant
+        af = af / cost
+        
+        # penalize acquisition function, loop through batch of evaluations
+        for i, penalty_point in enumerate(batch):
+            # add x-variables if needed
+            if self.env.x_dim is not None:
+                query_x = self.env.batch[i]
+                penalty_point = np.concatenate((penalty_point, query_x.reshape(1, -1)), axis = 1).reshape(1, -1)
+            # re-define penalty point as tensor
+            penalty_point = torch.tensor(penalty_point)
+            # define the value that goes inside the erfc
+            norm = torch.norm(penalty_point - X, dim = 1)
+            # calculate z-value
+            z = self.lipschitz_constant * norm - self.max_value + mean
+            z = z / (std * np.sqrt(2))
+            # define penaliser
+            penaliser = 0.5 * torch.erfc(-1*z)
+            # penalise ucb
+            af = af * penaliser
+        # return acquisition function
+        return af
