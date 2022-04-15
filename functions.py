@@ -337,12 +337,11 @@ class Ackley4D():
         return self.a * torch.exp(-self.b * torch.sqrt(s1)) + torch.exp(s2) - self.a - np.exp(1)
 
 class SnAr():
-    def __init__(self, residence_time = 1):
-        self.t_dim = 2
+    def __init__(self):
+        self.t_dim = 3
         self.x_dim = 1
 
         self.name = 'SnarBenchmark'
-        self.residence_time = residence_time
 
         self.snar_bench = SnarBenchmark()
     
@@ -353,10 +352,11 @@ class SnAr():
         x = x.reshape(1, -1)
         temp = x[:, 0] * 80 + 40
         conc_dfnb = x[:, 1] * 0.4 + 0.1
-        equiv_pldn = x[:, 2] * 4 + 1
+        residence_time = x[:, 2] * 1.5 + 0.5
+        equiv_pldn = x[:, 3] * 4 + 1
 
         values = {
-            ("tau", "DATA"): [self.residence_time],
+            ("tau", "DATA"): [residence_time],
             ("equiv_pldn", "DATA"): [equiv_pldn],
             ("conc_dfnb", "DATA"): [conc_dfnb],
             ("temperature", "DATA"): [temp],
@@ -364,7 +364,7 @@ class SnAr():
 
         conditions = DataSet(values)
         experiments = self.snar_bench.run_experiments(conditions, computation_time = False)
-        return experiments['sty'][0] / 10000 - experiments['e_factor'][0] / 5
+        return experiments['sty'][0] / 10000 - experiments['e_factor'][0] / 10
 
 def find_optimum(func, n_starts = 25, n_epochs = 100):
     # find dimension
