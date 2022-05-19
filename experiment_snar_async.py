@@ -2,9 +2,9 @@ import torch
 from gp_utils import BoTorchGP
 from functions import SnAr
 from snake import SnAKe, RandomTSP
-from bayes_op import UCBwLP, ThompsonSampling
+from bayes_op import UCBwLP, ThompsonSampling, EIpuLP
 from temperature_env import NormalDropletFunctionEnv
-from cost_functions import max_time_cost
+from cost_functions import max_time_cost, max_time_cost_torch
 import numpy as np
 import sys
 import os
@@ -18,7 +18,7 @@ python experiment_async 'method' 'run_number' 'epsilon' 'time_delay'
 
 Where:
 
-method - 'SnAKe', 'UCBwLP', 'TS', 'Random'
+method - 'SnAKe', 'UCBwLP', 'TS', 'Random', 'EIpuLP'
 run number - any integer, in experiments we used 1-10 inclusive
 epsilon - integer [0, 0.1, 1.0], alternatively modify the script to set epsilon = 'lengthscale' for ell-SnAKe
 time_delay - integer in [0, 1, 2, 3] corresponding to delays [5, 10, 25, 50]
@@ -29,17 +29,22 @@ run_num = int(sys.argv[2])
 epsilon = float(sys.argv[3])
 delay = int(sys.argv[4])
 
+# method = 'EIpuLP'
+# run_num = 0
+# epsilon = 1
+# delay = 2
+
 budget = 100
 function_number = 0
 
 print(method, run_num, budget, epsilon)
 
 # Make sure problem is well defined
-assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [SnAKe, UCBwLP, TS, Random]'
+assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random', 'EIpuLP'], 'Method must be string in [SnAKe, UCBwLP, TS, Random, EIpuLP]'
 assert delay in [0, 1, 2, 3], \
     'Delay must be integer in [0, 1, 2, 3]'
-assert epsilon in [0, 0.1, 0.25, 1, 'lengthscale'], \
-    'Epsilon must be in [0, 0.1, 0.25, 1]'
+assert epsilon in [0, 0.1, 0.25, 1, 100], \
+    'Epsilon must be in [0, 0.1, 0.25, 1, 100]'
 
 if delay == 0:
     delay = 5
@@ -49,6 +54,9 @@ elif delay == 2:
     delay = 25
 else:
     delay = 50
+
+if epsilon == 100:
+    epsilon = 'lengthscale'
 
 # Define function name
 functions = [SnAr()]
@@ -86,6 +94,7 @@ gp_model.fit_model(x_train, y_train)
 gp_model.optim_hyperparams()
 
 hypers = gp_model.current_hyperparams()
+init_max_value = hypers[-1]
 
 print('Initial hyper-parameters:', hypers)
 # Define Normal BayesOp Environment without delay
@@ -97,10 +106,15 @@ if method == 'SnAKe':
         hp_update_frequency = 25)
 elif method == 'UCBwLP':
     mod = UCBwLP(env, initial_temp = initial_temp, hp_update_frequency = 25)
+    mod.max_value = init_max_value
 elif method == 'TS':
     mod = ThompsonSampling(env, initial_temp = initial_temp, hp_update_frequency = 25)
 elif method == 'Random':
     mod = RandomTSP(env, initial_temp = initial_temp)
+elif method == 'EIpuLP':
+    cost_function = max_time_cost_torch
+    mod = EIpuLP(env, initial_temp = initial_temp, cost_constant = 1, cost_equation = cost_function)
+    mod.max_value = init_max_value
 
 mod.set_hyperparams(constant = hypers[0], lengthscale = hypers[1], noise = hypers[2], mean_constant = hypers[3], \
             constraints = True)
@@ -114,16 +128,16 @@ if epsilon == 'lengthscale':
     epsilon = 'l'
 
 if method == 'SnAKe':
-    folder_inputs = 'experiment_results_snar_async/' + f'{epsilon}-EaS/' + f'/delay{delay}/' + '/inputs/'
-    folder_outputs = 'experiment_results_snar_async/' + f'{epsilon}-EaS/' + f'/delay{delay}/' + '/outputs/'
+    folder_inputs = 'experiment_results_snar_async_residence_time/' + f'{epsilon}-EaS/' + f'/delay{delay}/' + '/inputs/'
+    folder_outputs = 'experiment_results_snar_async_residence_time/' + f'{epsilon}-EaS/' + f'/delay{delay}/' + '/outputs/'
     file_name = f'run_{run_num}'
 elif method == 'Random':
-    folder_inputs = 'experiment_results_snar_async/' + f'Random/' + f'/budget{delay}/' + '/inputs/'
-    folder_outputs = 'experiment_results_snar_async/' + f'Random/' + f'/budget{delay}/' + '/outputs/'
+    folder_inputs = 'experiment_results_snar_async_residence_time/' + f'Random/' + f'/delay{delay}/' + '/inputs/'
+    folder_outputs = 'experiment_results_snar_async_residence_time/' + f'Random/' + f'/delay{delay}/' + '/outputs/'
     file_name = f'run_{run_num}'
 else:
-    folder_inputs =  'experiment_results_snar_async/' + method + '/' + f'/budget{delay}/inputs/'
-    folder_outputs =  'experiment_results_snar_async/' + method + '/' + f'/budget{delay}/outputs/'
+    folder_inputs =  'experiment_results_snar_async_residence_time/' + method + '/' + f'/delay{delay}/inputs/'
+    folder_outputs =  'experiment_results_snar_async_residence_time/' + method + '/' + f'/delay{delay}/outputs/'
     file_name = f'run_{run_num}'
 
 # create directories if they exist
