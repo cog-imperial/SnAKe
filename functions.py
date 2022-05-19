@@ -336,6 +336,176 @@ class Ackley4D():
         s2 = torch.sum(torch.cos(self.c * x), axis = 1) / 4
         return self.a * torch.exp(-self.b * torch.sqrt(s1)) + torch.exp(s2) - self.a - np.exp(1)
 
+class Schekel2D():
+    def __init__(self, t_dim = 2, n_optims = 2):
+        self.t_dim = t_dim
+        if self.t_dim == 2:
+            self.x_dim = None
+        else:
+            self.x_dim = 2 - self.t_dim
+        # taken from website: https://www.sfu.ca/~ssurjano/shekel.html
+        self.optimum = -11
+
+        self.name = 'Schekel2D'
+
+        self.num_of_optims = n_optims
+        self.beta = np.array([10, 10, 2, 4, 4, 6, 3, 7, 5, 5])
+        self.C = np.array([[2, 6.7, 8, 6, 3, 2, 5, 8, 6, 7], \
+            [9, 2, 8, 6, 7, 9, 3, 1, 2, 3.6], \
+            [4, 1, 8, 6, 3, 2, 5, 8, 6, 7], \
+            [4, 1, 8, 6, 7, 9, 3, 1, 2, 3.6]])
+
+    def draw_new_function(self):
+        pass
+    
+    def query_function(self, x):
+        # new optimum
+        #shift = np.array([0.4, 0.5, 0.45, 0.55])
+        # first reparametrise x
+        x = x * 10
+        S1 = 0
+        for i in range(self.num_of_optims):
+            S2 = 0
+            for j in range(2):
+                S2 = S2 + (x[:, j] - self.C[i, j])**2
+            S1 = S1 + 1 / (S2 + self.beta[i])
+        return 10 * S1
+    
+    def query_function_torch(self, x):
+        # first reparametrise x
+        x = x * 10
+        S1 = 0
+        for i in range(self.num_of_optims):
+            S2 = 0
+            for j in range(2):
+                S2 = (x[:, j] - self.C[j, i])**2
+            S1 = S1 + 1 / (S2 + self.beta[i])
+        return S1
+
+class MultiSchekel2D():
+    def __init__(self, t_dim = 2, n_optims = [2, 3, 2]):
+        self.t_dim = t_dim
+        if self.t_dim == 2:
+            self.x_dim = None
+        else:
+            self.x_dim = 2 - self.t_dim
+        # taken from website: https://www.sfu.ca/~ssurjano/shekel.html
+        self.optimum = -11
+        # search grid
+        self.grid_search = True
+        sobol_gen = torch.quasirandom.SobolEngine(2)
+        self.grid_to_search = sobol_gen.draw(1000).double()
+        # two objectives
+        self.num_of_objectives = 3
+
+        self.name = 'Schekel2D'
+
+        self.num_of_optims = n_optims
+        self.beta = [0, 0, 0]
+        self.C = [0, 0, 0]
+        # first params
+        self.beta[0] = np.array([9, 9, 2, 4, 4, 6, 3, 7, 5, 5])
+        self.C[0] = np.array([[2, 6.7, 8, 6, 3, 2, 5, 8, 6, 7], \
+            [9, 2, 8, 6, 7, 9, 3, 1, 2, 3.6], \
+            [4, 1, 8, 6, 3, 2, 5, 8, 6, 7], \
+            [4, 1, 8, 6, 7, 9, 3, 1, 2, 3.6]])
+        # second params
+        self.beta[1] = np.array([10, 8, 8, 4, 4, 6, 3, 7, 5, 5])
+        self.C[1] = np.array([[7, 6, 5, 6, 3, 2, 5, 8, 6, 7], \
+            [3.8, 9.9, 5, 6, 7, 9, 3, 1, 2, 3.6], \
+            [9, 0.1, 5, 6, 3, 2, 5, 8, 6, 7], \
+            [4, 1, 8, 6, 7, 9, 3, 1, 2, 3.6]])
+        # third params
+        # second params
+        self.beta[2] = np.array([7, 9, 8, 4, 4, 6, 3, 7, 5, 5])
+        self.C[2] = np.array([[4, 3, 5, 6, 3, 2, 5, 8, 6, 7], \
+            [8.5, 4, 5, 6, 7, 9, 3, 1, 2, 3.6], \
+            [9, 0.1, 5, 6, 3, 2, 5, 8, 6, 7], \
+            [4, 1, 8, 6, 7, 9, 3, 1, 2, 3.6]])
+
+    def draw_new_function(self):
+        pass
+    
+    def query_function1(self, x):
+        # new optimum
+        #shift = np.array([0.4, 0.5, 0.45, 0.55])
+        # first reparametrise x
+        x = x * 10
+        S1 = 0
+        for i in range(self.num_of_optims[0]):
+            S2 = 0
+            for j in range(2):
+                S2 = S2 + (x[:, j] - self.C[0][i, j])**2
+            S1 = S1 + 1 / (S2 + self.beta[0][i])
+        return 10 * S1
+    
+    def query_function2(self, x):
+        # new optimum
+        #shift = np.array([0.4, 0.5, 0.45, 0.55])
+        # first reparametrise x
+        x = x * 10
+        S1 = 0
+        for i in range(self.num_of_optims[1]):
+            S2 = 0
+            for j in range(2):
+                S2 = S2 + (x[:, j] - self.C[1][i, j])**2
+            S1 = S1 + 1 / (S2 + self.beta[1][i])
+        return 10 * S1
+    
+    def query_function3(self, x):
+        # new optimum
+        #shift = np.array([0.4, 0.5, 0.45, 0.55])
+        # first reparametrise x
+        x = x * 10
+        S1 = 0
+        for i in range(self.num_of_optims[2]):
+            S2 = 0
+            for j in range(2):
+                S2 = S2 + (x[:, j] - self.C[2][i, j])**2
+            S1 = S1 + 1 / (S2 + self.beta[2][i])
+        return 10 * S1
+    
+    def query_function(self, x):
+        q1 = self.query_function1(x)
+        q2 = self.query_function2(x)
+        q3 = self.query_function3(x)
+        return [q1, q2, q3]
+
+class ScheckelSingle(MultiSchekel2D):
+    def __init__(self, t_dim=2, n_optims=[2, 3, 2], obj_to_query = 0):
+        super().__init__(t_dim, n_optims)
+        self.obj_to_query = obj_to_query
+    
+    def query_function_torch(self, x):
+        if self.obj_to_query == 0:
+            return super().query_function1(x)
+        elif self.obj_to_query == 1:
+            return super().query_function2(x)
+        else:
+            return super().query_function3(x)
+
+class YpacaraiLake(MultiSchekel2D):
+    def __init__(self, t_dim=2, n_optims=[2, 3, 2]):
+        super().__init__(t_dim, n_optims)
+        self.grid_to_search = torch.tensor(np.load('lake_grid.npy'))
+        self.name = 'YpacaraiLake'
+
+class YpacaraiLakeSingleObjective(ScheckelSingle):
+    def __init__(self, t_dim=2, n_optims=[2, 3, 2], obj_to_query = 0):
+        self.obj_to_query = obj_to_query
+        super().__init__(t_dim, n_optims, obj_to_query)
+        self.grid_to_search = torch.tensor(np.load('lake_grid.npy'))
+        self.name = 'YpacaraiLakeSingleObjective'
+        self.num_of_objectives = 1
+    
+    def query_function(self, x):
+        if self.obj_to_query == 0:
+            return super().query_function1(x)
+        elif self.obj_to_query == 1:
+            return super().query_function2(x)
+        else:
+            return super().query_function3(x)
+
 class SnAr():
     def __init__(self):
         self.t_dim = 3
@@ -402,6 +572,8 @@ def find_optimum(func, n_starts = 25, n_epochs = 100):
 
 # this last part is used to find the optimum of functions using gradient methods, if optimum is not available online
 if __name__ == '__main__':
-    func = Michalewicz2D()
+    func = ScheckelSingle(obj_to_query = 0)
     best_input, best_eval = find_optimum(func, n_starts = 100000, n_epochs = 1000)
+    print(float(best_input.detach()[0]))
+    print(float(best_input.detach()[1]))
     print(float(best_eval.detach()))
