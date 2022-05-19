@@ -618,6 +618,23 @@ class oneExpectedImprovement():
             
             return new_T, new_X
         
+        if self.env.function.grid_search == True:
+            grid_to_search = self.env.function.grid_to_search
+            idx_rand = torch.randperm(len(grid_to_search))[:self.max_grid_search_size]
+            self.grid_to_search_sample = grid_to_search[idx_rand, :]
+            af_in_grid = self.build_af(self.grid_to_search_sample)
+            max_idx = torch.argmax(af_in_grid)
+            best_input = self.grid_to_search_sample[max_idx, :]
+
+            if self.x_dim is not None:
+                new_T = best_input[:self.t_dim].detach().numpy().reshape(1, -1)
+                new_X = best_input[self.t_dim:].detach().numpy().reshape(1, -1)
+            else:
+                new_T = best_input.detach().numpy().reshape(1, -1)
+                new_X = None
+            # return next query
+            return new_T, new_X
+        
         # optimisation bounds
         bounds = torch.stack([torch.zeros(self.dim), torch.ones(self.dim)])
         # random initialization
@@ -692,12 +709,16 @@ class EIperUnitCost(oneExpectedImprovement):
     Lee, Eric Hans, et al. "Cost-aware Bayesian optimization." arXiv preprint arXiv:2003.10870 (2020).
     '''
 
-    def __init__(self, env, initial_temp=None, beta=1.96, lipschitz_constant=20, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None, cost_constant = 1, cost_equation = None):
+    def __init__(self, env, initial_temp=None, beta=1.96, lipschitz_constant=20, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None, cost_constant = 1, cost_equation = None, max_grid_search_size = 1000):
         '''
         Inputs:
         num_of_starts - number of multi-starts to optimize acquisition function
         num_of_optim_epochs - number of epochs to optimize acquisition function
         hp_update_frequency - how frequently to optimize the hyper-parameters
+        cost_constant - parameter to avoid division by zero, see SnAKe paper for description
+        cost_equation - equation that builds cost matrix
+        max_grid_search_size - maximum size of the grid over which to search, in case we are doing grid search
+
         '''
         # use Expected Improvement class, only change the acquisition function
         super().__init__(env, initial_temp=initial_temp, num_of_starts=num_of_starts, num_of_optim_epochs=num_of_optim_epochs, hp_update_frequency=hp_update_frequency)
@@ -706,17 +727,52 @@ class EIperUnitCost(oneExpectedImprovement):
             self.cost_equation = lambda x, y: torch.norm(x - y, dim = 1)
         else:
             self.cost_equation = cost_equation
+        
+        # grid search parameters
+        self.max_grid_search_size = max_grid_search_size
+        # check if we need to initialize a search grid
+        if self.env.function.grid_search is True:
+            # initialize grid to search
+            grid_to_search = self.env.function.grid_to_search
+            idx_rand = torch.randperm(len(grid_to_search))[:self.max_grid_search_size]
+            self.grid_to_search_sample = grid_to_search[idx_rand, :]
 
     def build_af(self, X):
         # Probability of Improvement using BoTorch
-        current_x = torch.tensor(self.current_temp)
-        cost = self.cost_equation(current_x, X) + self.cost_constant
+        current_x = torch.tensor(self.current_temp).double()
+        cost = self.cost_equation(current_x, X[:, :self.t_dim].double()) + self.cost_constant
         EI = ExpectedImprovement(self.model.model, best_f = self.max_value)
-        return EI(X.unsqueeze(1)) / cost
+        return EI(X.unsqueeze(1)) / cost.reshape(-1)
 
 class TruncatedExpectedImprovement(oneExpectedImprovement):
-    def __init__(self, env, initial_temp=None, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None):
+    '''
+    Truncated Expected Improvement as introduced in:
+
+    Samaniego, Federico Peralta, et al. "A bayesian optimization approach for water resources 
+    monitoring through an autonomous surface vehicle: The ypacarai lake case study." 
+    IEEE Access 9 (2021): 9163-9179.
+
+    '''
+    def __init__(self, env, initial_temp=None, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None, max_grid_search_size = 1000):
+        '''
+        Takes as inputs:
+
+        env - optimization environment
+        initial_temp - initial optimization cost
+        num_of_starts - number of multi-starts for optimizing the acquisition function, default is 75
+        num_of_optim_epochs - number of epochs for optimizing the acquisition function, default is 150
+        hp_update_frequency - how ofter should GP hyper-parameters be re-evaluated, default is None
+        max_grid_search_size - maximum size of the grid over which to search, in case we are doing grid search
+        '''
         super().__init__(env, initial_temp, num_of_starts, num_of_optim_epochs, hp_update_frequency)
+        # grid search parameters
+        self.max_grid_search_size = max_grid_search_size
+        # check if we need to initialize a search grid
+        if self.env.function.grid_search is True:
+            # initialize grid to search
+            grid_to_search = self.env.function.grid_to_search
+            idx_rand = torch.randperm(len(grid_to_search))[:self.max_grid_search_size]
+            self.grid_to_search_sample = grid_to_search[idx_rand, :]
     
     def optim_loop(self):
         '''
@@ -729,6 +785,10 @@ class TruncatedExpectedImprovement(oneExpectedImprovement):
         distance_to_query = np.linalg.norm(new_T - self.current_temp)
         if distance_to_query > jump_lengthscale:
             new_T = self.current_temp + (new_T - self.current_temp) / distance_to_query * jump_lengthscale 
+            if self.env.function.grid_search is True:
+                    distances_to_grid = np.sum((self.grid_to_search_sample - new_T).numpy()**2, axis = 1)
+                    idx_min = np.argmin(distances_to_grid)
+                    new_T = self.grid_to_search_sample[idx_min, :].numpy().reshape(1, -1)
         # check if we have x-variables (i.e. variables with no input cost)
         if self.x_dim == None:
             query = new_T
@@ -755,8 +815,94 @@ class TruncatedExpectedImprovement(oneExpectedImprovement):
         # update temperature and time
         self.current_temp = new_T
         self.current_time = self.current_time + 1
+    
+    def optimise_af(self):
+        # if time is zero, pick point at random
+        if self.current_time == 0:
+            new_T = np.random.uniform(size = self.t_dim).reshape(1, -1)
+            if self.x_dim is not None:
+                new_X = np.random.uniform(size = self.x_dim).reshape(1, -1)
+            else:
+                new_X = None
+            
+            return new_T, new_X
+        
+        if self.env.function.grid_search == True:
+            grid_to_search = self.env.function.grid_to_search
+            idx_rand = torch.randperm(len(grid_to_search))[:self.max_grid_search_size]
+            self.grid_to_search_sample = grid_to_search[idx_rand, :]
+            af_in_grid = self.build_af(self.grid_to_search_sample)
+            max_idx = torch.argmax(af_in_grid)
+            best_input = self.grid_to_search_sample[max_idx, :]
+
+            if self.x_dim is not None:
+                new_T = best_input[:self.t_dim].detach().numpy().reshape(1, -1)
+                new_X = best_input[self.t_dim:].detach().numpy().reshape(1, -1)
+            else:
+                new_T = best_input.detach().numpy().reshape(1, -1)
+                new_X = None
+            # return next query
+            return new_T, new_X
+
+
+
+        # optimisation bounds
+        bounds = torch.stack([torch.zeros(self.dim), torch.ones(self.dim)])
+        # random initialization
+        Xraw = torch.rand(100 * self.num_of_starts, self.dim)
+        Yraw = self.build_af(Xraw)
+        # use BoTorch initializer
+        X = initialize_q_batch_nonneg(Xraw, Yraw, self.num_of_starts)
+        X.requires_grad = True
+        # define optimizer
+        optimiser = torch.optim.Adam([X], lr = 0.0001)
+        
+        # do the optimization
+        for _ in range(self.num_of_optim_epochs):
+            # set zero grad
+            optimiser.zero_grad()
+            # losses for optimizer
+            losses = -self.build_af(X)
+            loss = losses.sum()
+            loss.backward()
+            # optim step
+            optimiser.step()
+
+            # make sure we are still within the bounds
+            for j, (lb, ub) in enumerate(zip(*bounds)):
+                X.data[..., j].clamp_(lb, ub) # need to do this on the data not X itself
+        # obtain the best start
+        best_start = torch.argmax(-losses)
+        best_input = X[best_start, :].detach()
+
+        if self.x_dim is not None:
+            new_T = best_input[:self.t_dim].detach().numpy().reshape(1, -1)
+            new_X = best_input[self.t_dim:].detach().numpy().reshape(1, -1)
+        else:
+            new_T = best_input.detach().numpy().reshape(1, -1)
+            new_X = None
+        # return next query
+        return new_T, new_X
 
 class EIpuLP(UCBwLP):
+    '''
+    Gonzalez, J., Dai, Z., Hennig, P., and Lawrence, N. 
+    Batch Bayesian Optimization via Local Penalization. 
+    In Proceedings of the 19th International Conference on Artificial Intelligence and Statistics, 
+    pp. 648-657, 09-11 May 2016.
+
+    Lee, Eric Hans, et al. "Cost-aware Bayesian optimization." arXiv preprint arXiv:2003.10870 (2020).
+
+    Takes as inputs:
+    env - optimization environment
+    beta - parameter of UCB bayesian optimization, default uses 0.2 * self.dim * np.log(2 * (self.env.t + 1))
+    lipschitz_consant - initial lipschitz_consant, will be re-estimated at every step
+    num_of_starts - number of multi-starts for optimizing the acquisition function, default is 75
+    num_of_optim_epochs - number of epochs for optimizing the acquisition function, default is 150
+    hp_update_frequency - how ofter should GP hyper-parameters be re-evaluated, default is None
+    cost_constant - parameter to avoid division by zero, see SnAKe paper for description
+    cost_equation - equation that builds cost matrix
+    '''
     def __init__(self, env, initial_temp=None, beta=None, lipschitz_constant=1, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None, cost_constant = 1, cost_equation = None):
         super().__init__(env, initial_temp, beta, lipschitz_constant, num_of_starts, num_of_optim_epochs, hp_update_frequency)
         # initialize cost constant
@@ -809,3 +955,185 @@ class EIpuLP(UCBwLP):
             af = af * penaliser
         # return acquisition function
         return af
+
+class MultiObjectiveEIpu(EIperUnitCost):
+    '''
+    Multi-objective version of EIpu. We do this by changing to the next objective after we incur a cost of 'cost_switch'.
+    See normal EIpu for explanation of other variables.
+    '''
+
+    def __init__(self, env, initial_temp=None, beta=None, lipschitz_constant=1, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None, cost_constant=1, cost_equation=None, cost_switch = .75):
+        # number of objectives to maximize
+        self.num_of_objectives = env.num_of_objectives
+        super().__init__(env, initial_temp, beta, lipschitz_constant, num_of_starts, num_of_optim_epochs, hp_update_frequency, cost_constant, cost_equation)
+        self.cost_switch = cost_switch
+        self.X = []
+        self.Y = [[] for _ in range(self.num_of_objectives)]
+        # initialize max value
+        self.max_value = [0 for _ in range(self.num_of_objectives)]
+        # define model
+        self.model = [BoTorchGP(lengthscale_dim = self.dim) for _ in range(self.num_of_objectives)]
+        self.set_hyperparams()
+        # initialize cost
+        self.current_cost = 0
+    
+    def set_hyperparams(self, constant = None, lengthscale = None, noise = None, mean_constant = None, constraints = False):
+        '''
+        This function is used to set the hyper-parameters of the GP.
+        INPUTS:
+        constant: positive float, multiplies the RBF kernel and defines the initital variance
+        lengthscale: tensor of positive floats of length (dim), defines the kernel of the rbf kernel
+        noise: positive float, noise assumption
+        mean_constant: float, value of prior mean
+        constraints: boolean, if True, we will apply constraints from paper based on the given hyperparameters
+        '''
+        if constant == None:
+            self.constant = 0.6
+            self.length_scale = torch.tensor([0.15] * self.dim)
+            self.noise = 1e-4
+            self.mean_constant = 0
+        
+        else:
+            self.length_scale = lengthscale
+            self.noise = noise
+            self.constant = constant
+            self.mean_constant = mean_constant
+        
+        self.gp_hyperparams = [(self.constant, self.length_scale, self.noise, self.mean_constant) for _ in range(self.num_of_objectives)]
+
+        # check if we want our constraints based on these hyperparams
+        if constraints is True:
+            for i in range(self.num_of_objectives):
+                self.model[i].define_constraints(self.length_scale, self.mean_constant, self.constant)
+    
+    def optim_loop(self):
+        '''
+        Performs a single loop of the optimisation
+        '''
+        # check current objective
+        if self.current_cost < self.cost_switch:
+            self.current_objective = 0
+        elif self.current_cost < 2 * self.cost_switch:
+            self.current_objective = min(1, self.num_of_objectives - 1)
+        else:
+            self.current_objective = min(2, self.num_of_objectives - 1)
+        # optimise acquisition function to obtain new queries
+        new_T, new_X = self.optimise_af()
+        # check if we have x-variables (i.e. variables with no input cost)
+        if self.x_dim == None:
+            query = new_T
+        else:
+            query = np.concatenate((new_T, new_X), axis = 1)
+        # reformat query
+        query = list(query.reshape(-1))
+        # step in environment
+        obtain_query, self.new_obs = self.env.step(new_T, new_X)
+        # add query to queried batch
+        self.queried_batch.append(query)
+        # update model
+        
+        if self.new_obs is not None:
+            self.X.append(list(obtain_query.reshape(-1)))
+            with torch.no_grad():
+                self.current_cost += float(self.cost_equation(torch.tensor(self.current_temp), torch.tensor(obtain_query)))
+            for obj in range(self.num_of_objectives):
+                self.Y[obj].append(self.new_obs[obj])
+                self.max_value[obj] = float(max(self.max_value[obj], float(self.new_obs[obj])))
+                self.update_model(obj)
+        # update hyperparams if needed
+        if (self.hp_update_frequency is not None) & (len(self.X) > 0):
+            if len(self.X) % self.hp_update_frequency == 0:
+                self.model.optim_hyperparams()
+                self.gp_hyperparams = self.model.current_hyperparams()
+                print(f'New hyperparams: {self.model.current_hyperparams()}')
+        # update temperature and time
+        self.current_temp = new_T
+        self.current_time = self.current_time + 1
+    
+    def update_model(self, obj):
+        '''
+        This function updates the GP model
+        '''
+        # get input dimension correct
+        if self.x_dim == None:
+            dim = self.t_dim
+        else:
+            dim = self.t_dim + self.x_dim
+        # reshape the data correspondingly
+        X_numpy = np.array(self.X).reshape(-1, dim)
+        # update model
+        if self.new_obs is not None:
+            self.model[obj].fit_model(X_numpy, self.Y[obj], previous_hyperparams = self.gp_hyperparams[obj])
+    
+    def build_af(self, X):
+        # Expected of Improvement using BoTorch
+        current_x = torch.tensor(self.current_temp).double()
+        cost = self.cost_equation(current_x, X[:, :self.t_dim].double()) + self.cost_constant
+        EI = ExpectedImprovement(self.model[self.current_objective].model, best_f = self.max_value[self.current_objective])
+        return EI(X.unsqueeze(1)) / cost.reshape(-1)
+
+class MultiObjectiveTrEI(MultiObjectiveEIpu):
+    '''
+    Multi-objective version of Truncated EI. We do this by changing to the next objective after we incur a cost of 'cost_switch'.
+    See normal Truncated EI for explanation of other variables.
+    '''
+    def __init__(self, env, initial_temp=None, beta=None, lipschitz_constant=1, num_of_starts=75, num_of_optim_epochs=150, hp_update_frequency=None, cost_constant=1, cost_equation=None, cost_switch=0.75):
+        super().__init__(env, initial_temp, beta, lipschitz_constant, num_of_starts, num_of_optim_epochs, hp_update_frequency, cost_constant, cost_equation, cost_switch)
+    
+    def optim_loop(self):
+        '''
+        Performs a single loop of the optimisation
+        '''
+        # check current objective
+        if self.current_cost < self.cost_switch:
+            self.current_objective = 0
+        elif self.current_cost < 2 * self.cost_switch:
+            self.current_objective = min(1, self.num_of_objectives - 1)
+        else:
+            self.current_objective = min(2, self.num_of_objectives - 1)
+        # optimise acquisition function to obtain new queries
+        new_T, new_X = self.optimise_af()
+        # check smallest lengthscale for jump
+        jump_lengthscale = float(torch.min(self.gp_hyperparams[self.current_objective][1])) * np.sqrt(self.dim)
+        distance_to_query = np.linalg.norm(new_T - self.current_temp)
+        if distance_to_query > jump_lengthscale:
+            new_T = self.current_temp + (new_T - self.current_temp) / distance_to_query * jump_lengthscale 
+            if self.env.function.grid_search is True:
+                    distances_to_grid = np.sum((self.grid_to_search_sample - new_T).numpy()**2, axis = 1)
+                    idx_min = np.argmin(distances_to_grid)
+                    new_T = self.grid_to_search_sample[idx_min, :].numpy().reshape(1, -1)
+        # check if we have x-variables (i.e. variables with no input cost)
+        if self.x_dim == None:
+            query = new_T
+        else:
+            query = np.concatenate((new_T, new_X), axis = 1)
+        # reformat query
+        query = list(query.reshape(-1))
+        # step in environment
+        obtain_query, self.new_obs = self.env.step(new_T, new_X)
+        # add query to queried batch
+        self.queried_batch.append(query)
+        # update model
+        
+        if self.new_obs is not None:
+            self.X.append(list(obtain_query.reshape(-1)))
+            with torch.no_grad():
+                self.current_cost += float(self.cost_equation(torch.tensor(self.current_temp), torch.tensor(obtain_query)))
+            for obj in range(self.num_of_objectives):
+                self.Y[obj].append(self.new_obs[obj])
+                self.max_value[obj] = float(max(self.max_value[obj], float(self.new_obs[obj])))
+                self.update_model(obj)
+        # update hyperparams if needed
+        if (self.hp_update_frequency is not None) & (len(self.X) > 0):
+            if len(self.X) % self.hp_update_frequency == 0:
+                self.model.optim_hyperparams()
+                self.gp_hyperparams = self.model.current_hyperparams()
+                print(f'New hyperparams: {self.model.current_hyperparams()}')
+        # update temperature and time
+        self.current_temp = new_T
+        self.current_time = self.current_time + 1
+    
+    def build_af(self, X):
+        # Expected of Improvement using BoTorch
+        EI = ExpectedImprovement(self.model[self.current_objective].model, best_f = self.max_value[self.current_objective])
+        return EI(X.unsqueeze(1))
