@@ -638,3 +638,243 @@ class RandomTSP():
         new_path_idx = list(chain.from_iterable(expanded_path_idx))
         # finally, update query plan
         self.query_plan = self.unique_samples[new_path_idx, :]
+
+class MultiObjectiveSnAKe(SnAKe):
+    '''
+    Variant of SnAKe that allows for simultaneous optimization of various black-box functions.
+    New inputs include:
+    
+    objective_weights: how to weight the importance of each objective? This should be list of length 'num_of_objectives'
+
+    max_search_grid_size: in cases where we are optimizing over a grid, choose the maximum size of the grid over which to optimize.
+
+    exploration_constant: a number between 0 and 1. It represents the percentage of exploratory samples are created in each batch. They are created using samples of the GP minus the mean.
+    '''
+    def __init__(self, env, initial_temp=None, max_change=None, gen_animation=False, merge_method='Point Deletion', merge_constant=None, hp_update_frequency=None, num_of_multistarts=10, cost_function=None, objective_weights = None, max_search_grid_size = 1000, exploration_constant = 1/3):
+        # new params
+        # number of objectives to maximize
+        self.num_of_objectives = env.num_of_objectives
+        # maximum search size for the grid, if grid is too large we randomly sample max_search_grid_size points from it
+        self.max_grid_search_size = max_search_grid_size
+        # determines the number of exploratory points
+        self.exploration_constant = exploration_constant
+        if objective_weights is None:
+            self.objective_weights = [1 / self.num_of_objectives for _ in range(self.num_of_objectives)]
+        else:
+            self.objective_weights = objective_weights
+        # initialize super
+        super().__init__(env, initial_temp, max_change, gen_animation, merge_method, merge_constant, hp_update_frequency, num_of_multistarts, cost_function)
+        self.X = []
+        self.Y = [[] for _ in range(self.num_of_objectives)]
+        # define model
+        self.model = [BoTorchGP(lengthscale_dim = self.dim) for _ in range(self.num_of_objectives)]
+        self.set_hyperparams()
+        # check if grid needs initialization
+        if self.env.function.grid_search is True:
+            # initialize grid to search
+            grid_to_search = self.env.function.grid_to_search
+            idx_rand = torch.randperm(len(grid_to_search))[:self.max_grid_search_size]
+            self.grid_to_search_sample = grid_to_search[idx_rand, :]
+
+    def set_hyperparams(self, constant = None, lengthscale = None, noise = None, mean_constant = None, constraints = False):
+        '''
+        This function is used to set the hyper-parameters of the GP.
+        INPUTS:
+        constant: positive float, multiplies the RBF kernel and defines the initital variance
+        lengthscale: tensor of positive floats of length (dim), defines the kernel of the rbf kernel
+        noise: positive float, noise assumption
+        mean_constant: float, value of prior mean
+        constraints: boolean, if True, we will apply constraints from paper based on the given hyperparameters
+        '''
+        if constant == None:
+            self.constant = 0.6
+            self.length_scale = torch.tensor([0.15] * self.dim)
+            self.noise = 1e-4
+            self.mean_constant = 0
+        
+        else:
+            self.length_scale = lengthscale
+            self.noise = noise
+            self.constant = constant
+            self.mean_constant = mean_constant
+        
+        self.gp_hyperparams = [(self.constant, self.length_scale, self.noise, self.mean_constant) for _ in range(self.num_of_objectives)]
+        if self.parameter_free == True:
+            self.merge_constant = torch.min(self.length_scale).item()
+
+        # check if we want our constraints based on these hyperparams
+        if constraints is True:
+            for i in range(self.num_of_objectives):
+                self.model[i].define_constraints(self.length_scale, self.mean_constant, self.constant)
+
+    def optim_loop(self):
+        '''
+        Performs a single loop of the optimisation
+        '''
+        # check if we have received a new observation
+        if (self.new_obs is not None):
+            # STEP 0: UPDATE SEARCH GRID
+            self.update_grid()
+            # STEP 1: CREATE MEGA BATCH
+            self.create_mega_batch()
+            # STEP 2: ARRANGE AND PLAN ORDER
+            self.order_mega_batch()
+        
+        # obtain new query from plans
+        new_T = self.query_plan[0, :self.t_dim].reshape(1, -1)
+        # check if planned change is larger than biggest allowed jump (not in paper)
+        if self.max_change is not None:
+            vec_norm = norm(new_T - self.current_temp[:, :self.t_dim])
+            # if it is larger, restrict the jump size
+            if vec_norm > self.max_change:
+                new_T = self.current_temp[:, :self.t_dim] + self.max_change * (new_T - self.current_temp[:, :self.t_dim]) / vec_norm
+                if self.env.function.grid_search is True:
+                    distances_to_grid = np.sum((self.grid_to_search_sample - new_T).numpy()**2, axis = 1)
+                    idx_min = np.argmin(distances_to_grid)
+                    new_T = self.grid_to_search_sample[idx_min, :].numpy().reshape(1, -1)
+        # check if all variables incur input cost
+        if self.env.x_dim == None:
+            new_X = None
+            query = new_T
+        else:
+            new_X = self.query_plan[0, self.t_dim:].reshape(-1, self.x_dim)
+            query = np.concatenate((new_T, new_X), axis = 1)
+        # reshape query
+        query = list(query.reshape(-1))
+        # re-define the query plan without current query
+        self.query_plan = self.query_plan[1:, :]
+        # step in the environment
+        obtain_query, self.new_obs = self.env.step(new_T, new_X)
+        # append the query to our query batch
+        self.queried_batch.append(query)
+        # STEP 3: UPDATE MODEL
+        if self.new_obs is not None:
+            self.X.append(list(obtain_query.reshape(-1)))
+            for obj in range(self.num_of_objectives):
+                self.Y[obj].append(self.new_obs[obj])
+                self.update_model(obj)
+        # check the update frequency and make sure we actually have data to train
+        for obj in range(self.num_of_objectives):
+            if (self.hp_update_frequency is not None) & (len(self.X) > 0):
+                if len(self.X) % self.hp_update_frequency == 0:
+                    self.model[obj].optim_hyperparams()
+                    self.gp_hyperparams[obj] = self.model[obj].current_hyperparams()
+                    print(f'New hyperparams: {self.model[obj].current_hyperparams()}')
+                    # update value of epsilon
+                    if self.parameter_free == True:
+                        length_scale = self.gp_hyperparams[obj][1]
+                        self.merge_constant = torch.min(length_scale).item()
+                        print(f'New $\epsilon = ${self.merge_constant}')
+        # update current temperature and current time
+        self.current_temp = np.array(query).reshape(1, -1)
+        self.current_time = self.current_time + 1
+    
+    def create_mega_batch(self):
+        '''
+        This function creates the batch of Thompson Samples that approximate the future
+        '''
+        # get number of samples depending on the method
+        if self.merge_method in ['Point Deletion', 'e-Point Deletion']:
+            self.num_of_samples = self.budget + 1
+        elif self.merge_method == 'Resampling':
+            self.num_of_samples = self.budget + 1 - self.env.t
+
+        samples_so_far = 0
+        samples = np.empty(shape = (0, self.dim))
+        for obj in range(self.num_of_objectives):
+            if obj == self.num_of_objectives - 1:
+                num_of_samples_obj = self.num_of_samples - samples_so_far
+            else:
+                num_of_samples_obj = int(self.num_of_samples * self.objective_weights[obj] / (np.sum(self.objective_weights)))
+                samples_so_far = samples_so_far + num_of_samples_obj
+
+            if len(self.X) == 0:
+                samples_obj = np.random.uniform(size = (num_of_samples_obj, self.dim))
+
+            elif self.env.function.grid_search is True:
+                grid_to_search = self.env.function.grid_to_search
+                idx_rand = torch.randperm(len(grid_to_search))[:self.max_grid_search_size]
+                self.grid_to_search_sample = grid_to_search[idx_rand, :]
+                gp_samples = self.model[obj].sample(self.grid_to_search_sample, n_samples = num_of_samples_obj)
+                # we now check for exploratory samples
+                exploratory_penalty = np.zeros_like(gp_samples)
+                exploratory_sample_size = int(self.exploration_constant * num_of_samples_obj)
+                with torch.no_grad():
+                    mean, _ = self.model[obj].posterior(self.grid_to_search_sample)
+                    mean = mean.numpy().reshape(1, -1).repeat(exploratory_sample_size, axis = 0)
+                    exploratory_penalty[:exploratory_sample_size, :] = mean
+                    gp_samples = gp_samples - exploratory_penalty
+                # find the maximum of each grid search
+                max_idx = np.argmax(gp_samples, axis = 1)
+                samples_obj = self.grid_to_search_sample[max_idx, :]
+
+            else:
+                # define the sampler
+                sampler = EfficientThompsonSampler(self.model[obj], num_of_multistarts = self.num_of_multistarts, \
+                    num_of_bases = 1024, \
+                    num_of_samples = num_of_samples_obj)
+                # create samples
+                sampler.create_sample()
+                # optimise samples
+                samples_obj = sampler.generate_candidates()
+                samples_obj = samples_obj.numpy()
+            samples = np.concatenate((samples, samples_obj), axis = 0)
+        
+        # outputs information for graphics and animation
+        if self.gen_animation:
+            self.out0 = ['raw samples', samples, self.env.temperature_list.copy(), self.X.copy()]
+        # delete points if necessary
+        if self.merge_method in ['Point Deletion', 'e-Point Deletion']:
+            samples = self.delete_points_from(samples)
+
+        # sort samples by distance to current temperature, to define the local grid
+        dist_to_current = norm(self.current_temp - samples, axis = 1)
+        sorted_samples = np.array([list(s) for _, s in sorted(zip(dist_to_current, samples), \
+            key = lambda z: z[0])]).reshape(-1, self.dim)
+        # define local and global samples
+        self.local_grid = sorted_samples[:self.n_local, :]
+        self.update_grid()
+        # assign remaining points to grid
+        # assign remaining points to grid: step 1, find the the point in the grid closest to each sample
+        distances_to_grid = distance_matrix(self.working_grid, samples)
+        max_idx = np.argmin(distances_to_grid, axis = 0).squeeze()
+        # if we are at the last time-step, we run into trouble without the following step
+        if self.current_time == self.budget:
+            max_idx = [max_idx]
+
+        # assign remaining points to grid: step 2, make them unique, obtain counts (how many samples were assigned to each grid-point)
+        unique_sample_idx, self.count_list = np.unique(max_idx, axis = 0, return_counts = True)
+        # reshape
+        unique_sample_idx = unique_sample_idx.reshape(-1, 1)
+        self.count_list = self.count_list.reshape(-1, 1)
+        # if we are doing animation, output information
+        if self.gen_animation:
+            self.out1 = ['deleted samples', self.working_grid[unique_sample_idx, :].copy(), self.env.temperature_list.copy(), self.X.copy()]
+        # assign remaining points to grid: step 3, finally re-define the samples to the corresponding grid-point
+        self.unique_samples = self.working_grid[unique_sample_idx.reshape(-1), :]
+        # pick out temperature variables from samples
+        self.temperature_samples = self.unique_samples[:, :self.t_dim]
+        # add current temperature if needed, to use as source of travelling salesman
+        if self.current_temp[:, :self.t_dim] in self.temperature_samples:
+            self.current_temp_in_sample = True
+            self.current_temp_idx = np.where(self.current_temp[:, :self.t_dim] == self.temperature_samples)[0][0]
+        else:
+            self.current_temp_in_sample = False
+            self.temperature_samples = np.concatenate((self.current_temp[:, :self.t_dim], self.temperature_samples))
+            self.unique_samples = np.concatenate((self.current_temp, self.unique_samples))
+            self.current_temp_idx = 0
+
+    def update_model(self, obj):
+        '''
+        This function updates the GP model
+        '''
+        # get input dimension correct
+        if self.x_dim == None:
+            dim = self.t_dim
+        else:
+            dim = self.t_dim + self.x_dim
+        # reshape the data correspondingly
+        X_numpy = np.array(self.X).reshape(-1, dim)
+        # update model
+        if self.new_obs is not None:
+            self.model[obj].fit_model(X_numpy, self.Y[obj], previous_hyperparams = self.gp_hyperparams[obj])
