@@ -2,7 +2,7 @@ import torch
 from gp_utils import BoTorchGP
 from functions import BraninFunction, Ackley4D, Hartmann3D, Michalewicz2D, Hartmann4D, Hartmann6D
 from snake import SnAKe, RandomTSP
-from bayes_op import UCBwLP, ThompsonSampling
+from bayes_op import UCBwLP, ThompsonSampling, EIpuLP
 from temperature_env import NormalDropletFunctionEnv
 from scipy.spatial import distance_matrix
 import numpy as np
@@ -18,7 +18,7 @@ python experiment_async 'method' 'function_number' 'run_number' 'budget' 'epsilo
 
 Where:
 
-method - 'SnAKe', 'UCBwLP', 'TS', 'Random'
+method - 'SnAKe', 'UCBwLP', 'TS', 'Random', 'EIpuLP'
 function number - integer between 0 and 5
 run number - any integer, in experiments we used 1-10 inclusive
 budget - integer in [100, 250]
@@ -36,10 +36,18 @@ epsilon = float(sys.argv[5])
 cost_func = int(sys.argv[6])
 time_delay = int(sys.argv[7])
 
+# method = 'EIpuLP'
+# function_number = 0
+# run_num = 1
+# budget = 250
+# epsilon = 1
+# cost_func = 2
+# time_delay = 25
+
 print(method, function_number, run_num, budget, epsilon, cost_func, time_delay)
 
 # Make sure problem is well defined
-assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random'], 'Method must be string in [SnAKe, UCBwLP, TS, Random]'
+assert method in ['SnAKe', 'UCBwLP', 'TS', 'Random', 'EIpuLP'], 'Method must be string in [SnAKe, UCBwLP, TS, Random, EIpuLP]'
 assert function_number in range(6), \
     'Function must be integer between 0 and 5'
 assert budget in [100, 250], \
@@ -108,6 +116,8 @@ elif method == 'TS':
     mod = ThompsonSampling(env, initial_temp = initial_temp, hp_update_frequency = 25)
 elif method == 'Random':
     mod = RandomTSP(env, initial_temp = initial_temp)
+elif method == 'EIpuLP':
+    mod = EIpuLP(env, initial_temp = initial_temp, cost_constant = 1)
 
 mod.set_hyperparams(constant = hypers[0], lengthscale = hypers[1], noise = hypers[2], mean_constant = hypers[3], \
             constraints = True)
