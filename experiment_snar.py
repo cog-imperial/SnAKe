@@ -2,9 +2,9 @@ import torch
 from gp_utils import BoTorchGP
 from functions import SnAr
 from snake import SnAKe, RandomTSP
-from bayes_op import UCBwLP, oneExpectedImprovement, oneProbabilityOfImprovement
+from bayes_op import UCBwLP, oneExpectedImprovement, oneProbabilityOfImprovement, EIperUnitCost, TruncatedExpectedImprovement
 from temperature_env import NormalDropletFunctionEnv
-from cost_functions import max_time_cost
+from cost_functions import max_time_cost, max_time_cost_torch
 import numpy as np
 import sys
 import os
@@ -18,7 +18,7 @@ python experiment_async 'method' 'run_number' 'budget' 'epsilon'
 
 Where:
 
-method - 'SnAKe', 'EI', 'UCB', 'PI', 'Random'
+method - 'SnAKe', 'EI', 'UCB', 'PI', 'Random', 'EIpu', 'TrEI'
 run number - any integer, in experiments we used 1-10 inclusive
 budget - integer in [100, 250]
 epsilon - integer [0, 0.1, 1.0], alternatively modify the script to set epsilon = 'lengthscale' for ell-SnAKe
@@ -28,6 +28,7 @@ method = str(sys.argv[1])
 run_num = int(sys.argv[2])
 budget = int(sys.argv[3])
 epsilon = float(sys.argv[4])
+gamma = 1
 
 function_number = 0
 
@@ -40,10 +41,13 @@ elif budget == 2:
 else:
     budget = 100
 
+if epsilon == 100:
+    epsilon = 'lengthscale'
+
 print(method, run_num, budget, epsilon)
 
 # Make sure problem is well defined
-assert method in ['SnAKe', 'EI', 'UCB', 'PI', 'Random'], 'Method must be string in [SnAKe, EI, UCB, PI, Random]'
+assert method in ['SnAKe', 'EI', 'UCB', 'PI', 'Random', 'EIpu'], 'Method must be string in [SnAKe, EI, UCB, PI, Random, EIpu]'
 assert budget in [10, 25, 50, 100], \
     'Budget must be integer in [10, 25, 50, 100]'
 assert epsilon in [0, 0.1, 0.25, 1, 'lengthscale'], \
@@ -84,6 +88,7 @@ gp_model.fit_model(x_train, y_train)
 gp_model.optim_hyperparams()
 
 hypers = gp_model.current_hyperparams()
+init_max_value = hypers[-1]
 
 print('Initial hyper-parameters:', hypers)
 # Define Normal BayesOp Environment without delay
@@ -101,6 +106,11 @@ elif method == 'PI':
     mod = oneProbabilityOfImprovement(env, initial_temp = initial_temp, hp_update_frequency = 25)
 elif method == 'Random':
     mod = RandomTSP(env, initial_temp = initial_temp)
+elif method == 'EIpu':
+    cost_function = max_time_cost_torch
+    mod = EIperUnitCost(env, initial_temp = initial_temp, cost_constant = 1, cost_equation = cost_function)
+elif method == 'TrEI':
+    mod = TruncatedExpectedImprovement(env, initial_temp = initial_temp)
 
 mod.set_hyperparams(constant = hypers[0], lengthscale = hypers[1], noise = hypers[2], mean_constant = hypers[3], \
             constraints = True)
@@ -114,16 +124,20 @@ if epsilon == 'lengthscale':
     epsilon = 'l'
 
 if method == 'SnAKe':
-    folder_inputs = 'experiment_results_snar/' + f'{epsilon}-EaS/' + f'/budget{budget + 1}/' + '/inputs/'
-    folder_outputs = 'experiment_results_snar/' + f'{epsilon}-EaS/' + f'/budget{budget + 1}/' + '/outputs/'
+    folder_inputs = 'experiment_results_snar_residence_time/' + f'{epsilon}-EaS/' + f'/budget{budget + 1}/' + '/inputs/'
+    folder_outputs = 'experiment_results_snar_residence_time/' + f'{epsilon}-EaS/' + f'/budget{budget + 1}/' + '/outputs/'
     file_name = f'run_{run_num}'
 elif method == 'Random':
-    folder_inputs = 'experiment_results_snar/' + f'Random/' + f'/budget{budget + 1}/' + '/inputs/'
-    folder_outputs = 'experiment_results_snar/' + f'Random/' + f'/budget{budget + 1}/' + '/outputs/'
+    folder_inputs = 'experiment_results_snar_residence_time/' + f'Random/' + f'/budget{budget + 1}/' + '/inputs/'
+    folder_outputs = 'experiment_results_snar_residence_time/' + f'Random/' + f'/budget{budget + 1}/' + '/outputs/'
+    file_name = f'run_{run_num}'
+elif method == 'EIpu':
+    folder_inputs = 'experiment_results_snar_residence_time/' + str(gamma) + f'EIpu/' + f'/budget{budget + 1}/' + '/inputs/'
+    folder_outputs = 'experiment_results_snar_residence_time/' + str(gamma) + f'EIpu/' + f'/budget{budget + 1}/' + '/outputs/'
     file_name = f'run_{run_num}'
 else:
-    folder_inputs =  'experiment_results_snar/' + method + '/' + f'/budget{budget + 1}/inputs/'
-    folder_outputs =  'experiment_results_snar/' + method + '/' + f'/budget{budget + 1}/outputs/'
+    folder_inputs =  'experiment_results_snar_residence_time/' + method + '/' + f'/budget{budget + 1}/inputs/'
+    folder_outputs =  'experiment_results_snar_residence_time/' + method + '/' + f'/budget{budget + 1}/outputs/'
     file_name = f'run_{run_num}'
 
 # create directories if they exist
