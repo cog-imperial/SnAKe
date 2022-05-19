@@ -7,12 +7,14 @@ The code allows for reproducibility of the results and figures shown in the pape
 - experiment_async.py : asynchronous, synthetic benchmark
 - experiment_snar.py : synchronous, SnAr benchmark
 - experiment_snar_async.py : asynchronous, SnAr benchmark
+- ypacarai_lake.py : Ypacarai experiments
 
 For the figures you can use:
 
-- resampling_vs_pd_figure.py : Figure 2 and 9
-- create_graph.py : Figure 3
-- experiment_pt.py : Figure 7 and 8: 
+- resampling_vs_pd_figure.py : Figure 1 and 10
+- create_graph.py : Figure 2
+- experiment_pt.py : Figure 8 and 9 
+- ypacarai_lake.py : Figure 4 and 7
 
 The rest of the files correspond to:
 
