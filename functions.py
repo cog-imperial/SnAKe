@@ -12,6 +12,7 @@ class ConvergenceTest():
     def __init__(self):
         self.x_dim = None
         self.t_dim = 1
+        self.grid_search = False
     
     def draw_new_function(self):
         pass
@@ -27,6 +28,7 @@ class TwoDSinCosine():
         self.optimum = 1.15371572971344
         self.draw_new_function()
         self.name = 'SineCosine 2D'
+        self.grid_search = False
 
     def draw_new_function(self):
         if self.random:
@@ -56,6 +58,7 @@ class BraninFunction():
             self.x_dim = 2 - self.t_dim
         # optimum calculated using gradient methods (see code at the bottom)
         self.optimum = 1.0473939180374146
+        self.grid_search = False
 
         self.name = 'Branin2D'
     
@@ -95,6 +98,7 @@ class Hartmann3D():
             self.x_dim = 3 - self.t_dim
         # taken from website: https://www.sfu.ca/~ssurjano/hart3.html
         self.optimum = 3.8627797869493365
+        self.grid_search = False
 
         self.name = 'Hartmann3D'
 
@@ -133,6 +137,7 @@ class Hartmann4D():
             self.x_dim = 4 - self.t_dim
         # taken from website: https://www.sfu.ca/~ssurjano/hart3.html
         self.optimum = 3.7298407554626465
+        self.grid_search = False
 
         self.name = 'Hartmann4D'
 
@@ -184,6 +189,7 @@ class Hartmann6D():
             self.x_dim = 6 - self.t_dim
         # taken from website: https://www.sfu.ca/~ssurjano/hart6.html
         self.optimum = 3.322368011391339
+        self.grid_search = False
 
         self.name = 'Hartmann6D'
 
@@ -223,6 +229,7 @@ class Michalewicz2D():
             self.x_dim = 2 - self.t_dim
         # calculated below
         self.optimum = 0.6754469275474548
+        self.grid_search = False
 
         self.name = 'Michaelwicz2D'
 
@@ -252,6 +259,7 @@ class Perm8D():
             self.x_dim = 8 - self.t_dim
         # taken from website: https://www.sfu.ca/~ssurjano/permdb.html
         self.optimum = 0
+        self.grid_search = False
 
         self.name = 'Perm8D'
 
@@ -279,6 +287,7 @@ class Perm10D():
             self.x_dim = 10 - self.t_dim
         # taken from website: https://www.sfu.ca/~ssurjano/permdb.html
         self.optimum = 0
+        self.grid_search = False
 
         self.name = 'Perm10D'
 
@@ -310,6 +319,7 @@ class Ackley4D():
             self.x_dim = 4 - self.t_dim
         # taken from website: https://www.sfu.ca/~ssurjano/ackley.html
         self.optimum = 0
+        self.grid_search = False
 
         self.name = 'Ackley4D'
 
@@ -347,6 +357,7 @@ class Schekel2D():
         self.optimum = -11
 
         self.name = 'Schekel2D'
+        self.grid_search = True
 
         self.num_of_optims = n_optims
         self.beta = np.array([10, 10, 2, 4, 4, 6, 3, 7, 5, 5])
