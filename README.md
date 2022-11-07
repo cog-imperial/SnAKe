@@ -1,5 +1,15 @@
 # SnAKe
-Repository that includes the code for the paper: "SnAKe: Bayesian Optimization with Pathwise Exploration"
+Repository that includes the code for the paper: ["SnAKe: Bayesian Optimization with Pathwise Exploration"](https://arxiv.org/abs/2202.00060). The paper has been accepted into NeurIPS 2022. Until the conference, please cite the the preprint:
+
+- Folch, Jose Pablo, Shiqiang Zhang, Robert M. Lee, Behrang Shafei, David Walz, Calvin Tsay, Mark van der Wilk, and Ruth Misener. "SnAKe: Bayesian Optimization with Pathwise Exploration." arXiv preprint arXiv:2202.00060 (2022).
+
+The BibTeX reference is:
+
+    @article{folch2022snake,
+      title={SnAKe: Bayesian Optimization with Pathwise Exploration},
+      author={Folch, Jose Pablo and Zhang, Shiqiang and Lee, Robert M and Shafei, Behrang and Walz, David and Tsay, Calvin and van der Wilk, Mark and Misener, Ruth},
+      journal={arXiv preprint arXiv:2202.00060},
+      year={2022}}
 
 The code allows for reproducibility of the results and figures shown in the paper. To reproduce any experimental run, use the corresponding experiment script, these are: 
 
@@ -25,3 +35,7 @@ The rest of the files correspond to:
 - gp_utils.py : Defines the GP class which is used by all methods in the paper.
 - sampling.py : Implementation of sampling method.
 - temperature_env.py : Defines the environment class that is used in all optimizations.
+
+# Contributors
+
+[Jose Pablo Folch](https://jpfolch.github.io). Funded by EPSRC through the Modern Statistics and Statistical Machine Learning (StatML) CDT (grant no. EP/S023151/1) and by BASF SE, Ludwigshafen am Rhein.
