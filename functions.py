@@ -521,6 +521,7 @@ class SnAr():
     def __init__(self):
         self.t_dim = 3
         self.x_dim = 1
+        self.grid_search = False
 
         self.name = 'SnarBenchmark'
 
