@@ -7,9 +7,10 @@ import math
 from gp_utils import BoTorchGP
 import torch
 from matplotlib.patches import Circle
+import matplotlib.colors as colors
 
 '''
-This script was used to create Figure 3 in the paper.
+This script was used to create Figure 2 in the paper.
 '''
 
 # initialise a figure
@@ -71,7 +72,7 @@ while model.current_time <= model.budget:
 
     a = model.out2
     # out yields which are normally used to generate an animation
-    if model.current_time == 11:
+    if model.current_time == 10:
         yield1 =  model.out0 # 'raw samples', samples, self.env.temperature_list, self.X
         yield2 =  model.out1 # 'deleted samples', self.working_grid[unique_sample_idx, :], self.env.temperature_list, self.X
         yield3 =  model.out2 # 'new_plan', self.query_plan, self.env.temperature_list, self.X
@@ -83,21 +84,34 @@ while model.current_time <= model.budget:
 # do we want to plot paths or Point Deletion Step?
 plot = 'second'
 # do we want to plot the deleted points?
-with_deleted = True
+with_deleted = False
 
 # plot contour
-ax.contourf(x_grid, y_grid, z_grid, levels = 100)
+# Two slope norm for color bar
+colors_positive = plt.cm.spring(np.linspace(.5, .1, 256))
+colors_negative = plt.cm.spring(np.linspace(.1, 1, 256))
+all_colors = np.vstack((colors_positive, colors_negative))
+color_map = colors.LinearSegmentedColormap.from_list('color_map', all_colors)
+
+min_val = 0.4
+max_val = 1.1
+
+divnorm = colors.TwoSlopeNorm(vcenter = 0.6, vmin=min_val, vmax=max_val)
+
+ax.contourf(x_grid, y_grid, z_grid, levels = 250, cmap = color_map, norm = divnorm)
+
+red_replacement = 'firebrick'
 
 if plot == 'first':
     # plot evaluated points
     evaled_points = np.array(yield1[3])
     n_eval_points = evaled_points.shape[0]
-    ax.plot(evaled_points[:, 0], evaled_points[:, 1], c = 'r', marker = 'x', markersize = 15, zorder = 1)
+    ax.plot(evaled_points[:, 0], evaled_points[:, 1], c = red_replacement, marker = 'x', markersize = 15, zorder = 1)
     # add epsilon circles
     for i in range(0, n_eval_points, 1):
         xx = evaled_points[i, 0]
         yy = evaled_points[i, 1]
-        color = 'r'
+        color = red_replacement
         alpha = 0.4
         circ = Circle((xx,yy), epsilon, alpha = alpha, fill = False, color = color)
         ax.add_patch(circ)
@@ -111,10 +125,10 @@ if plot == 'second':
     # plot evaluated points
     evaled_points = np.array(yield1[3])
     n_eval_points = evaled_points.shape[0]
-    ax.plot(evaled_points[:, 0], evaled_points[:, 1], c = 'r', marker = 'x', markersize = 15)
+    ax.plot(evaled_points[:, 0], evaled_points[:, 1], c = red_replacement, marker = 'x', markersize = 15, label = 'actual optimization path')
     # plot future paths
     future_points = yield3[1]
-    ax.plot(future_points[:, 0], future_points[:, 1], c = 'b', marker = '.', markersize = 15, label = 'new optimization path')
+    ax.plot(future_points[:, 0], future_points[:, 1], c = 'b', marker = '.', markersize = 15, label = 'planned optimization path')
     # connect
     connect = np.concatenate((evaled_points[-1, :].reshape(1, -1), future_points[0, :].reshape(1, -1)), axis = 0)
     ax.plot(connect[:, 0], connect[:, 1], 'b--', markersize = 1)
@@ -134,5 +148,5 @@ ax.set_xlabel('$x_1$', fontsize = 20)
 ax.set_ylabel('$x_2$', fontsize = 20)
 ax.set_aspect('equal')
 plt.legend(loc = 'upper right', framealpha = 0.8, prop={'size': 25})
-plt.savefig('EaSdemo3nd.pdf', bbox_inches = 'tight')
+plt.savefig('new_EaSdemo1st.pdf', bbox_inches = 'tight')
 plt.show()

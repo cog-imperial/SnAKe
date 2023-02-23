@@ -548,6 +548,39 @@ class SnAr():
         experiments = self.snar_bench.run_experiments(conditions, computation_time = False)
         return experiments['sty'][0] / 10000 - experiments['e_factor'][0] / 10
 
+class MultiObjectiveSnAr():
+    def __init__(self):
+        self.t_dim = 3
+        self.x_dim = 1
+        self.grid_search = False
+
+        self.num_of_objectives = 2
+
+        self.name = 'SnarBenchmark'
+
+        self.snar_bench = SnarBenchmark()
+    
+    def draw_new_function(self):
+        pass
+
+    def query_function(self, x):
+        x = x.reshape(1, -1)
+        temp = x[:, 0] * 80 + 40
+        conc_dfnb = x[:, 1] * 0.4 + 0.1
+        residence_time = x[:, 2] * 1.5 + 0.5
+        equiv_pldn = x[:, 3] * 4 + 1
+
+        values = {
+            ("tau", "DATA"): [residence_time],
+            ("equiv_pldn", "DATA"): [equiv_pldn],
+            ("conc_dfnb", "DATA"): [conc_dfnb],
+            ("temperature", "DATA"): [temp],
+        }
+
+        conditions = DataSet(values)
+        experiments = self.snar_bench.run_experiments(conditions, computation_time = False)
+        return [experiments['sty'][0] / 10000, - (experiments['e_factor'][0] / 10 + 8) / 4]
+
 def find_optimum(func, n_starts = 25, n_epochs = 100):
     # find dimension
     if func.x_dim is not None:

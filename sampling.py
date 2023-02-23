@@ -167,3 +167,76 @@ class EfficientThompsonSampler():
         # return the best one for each sample, without gradients
         X_out = X[best_idx, range(0, self.num_of_samples), :]
         return X_out.detach()
+
+
+class ScalarizedMultiObjectiveSampling():
+    def __init__(self, objectives, scalarazation = "linear") -> None:
+        '''
+        Takes multiple samplers and allows the scalarized optimization of multiple ones.
+
+        objectives: a list of samplers for each objective. Optimization parameters will be taken from first objective.
+
+        scalarazation: type of scalarazation either "linear" or "tchebysev"
+
+        '''
+        self.objectives = objectives
+        self.scalarazation = scalarazation
+        self.num_objectives = len(self.objectives)
+
+        # get optimization values from first sampler
+        self.x_dim = self.objectives[0].x_dim
+        self.num_of_multistarts = self.objectives[0].num_of_multistarts
+        self.num_of_samples = self.objectives[0].num_of_samples
+        self.learning_rate = self.objectives[0].learning_rate
+
+        self.num_of_epochs = self.objectives[0].num_of_epochs
+
+        self.generate_lambdas()
+    
+    def generate_lambdas(self):
+        # sample uniformly from the simplex
+        lambdas = torch.rand(self.num_of_multistarts, self.num_of_samples, self.num_objectives - 1)
+        # sort
+        lambdas.sort(dim = -1)
+        # concat
+        ones = torch.ones(self.num_of_multistarts, self.num_of_samples, 1)
+        zeros = torch.zeros(self.num_of_multistarts, self.num_of_samples, 1)
+        # create lambas
+        lambdas0 = torch.concat((zeros, lambdas), dim = -1)
+        lambdas1 = torch.concat((lambdas, ones), dim = -1)
+
+        self.lambdas = lambdas1 - lambdas0
+    
+    def generate_candidates(self):
+        # we are always working on [0, 1]^d
+        bounds = torch.stack([torch.zeros(self.x_dim), torch.ones(self.x_dim)])
+        # initialise randomly - there is definitely much better ways of doing this
+        X = torch.rand(self.num_of_multistarts, self.num_of_samples, self.x_dim)
+        X.requires_grad = True
+        # define optimiser
+        optimiser = torch.optim.Adam([X], lr = self.learning_rate)
+
+        for _ in range(self.num_of_epochs):
+            # set zero grad
+            losses = 0
+            optimiser.zero_grad()
+            # evaluate loss and backpropagate
+            for obj_idx, obj in enumerate(self.objectives):
+                losses = losses - obj.query_sample(X) * self.lambdas[:, :, obj_idx]
+            loss = losses.sum()
+            loss.backward()
+            # take step
+            optimiser.step()
+
+            # make sure we are still within the bounds
+            for j, (lb, ub) in enumerate(zip(*bounds)):
+                X.data[..., j].clamp_(lb, ub) # need to do this on the data not X itself
+        # check the final evaluations
+        final_evals = 0
+        for obj_idx, obj in enumerate(self.objectives):
+            final_evals = final_evals + obj.query_sample(X) * self.lambdas[:, :, obj_idx]
+        # choose the best one for each sample
+        best_idx = torch.argmax(final_evals, axis = 0)
+        # return the best one for each sample, without gradients
+        X_out = X[best_idx, range(0, self.num_of_samples), :]
+        return X_out.detach()
