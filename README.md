@@ -1,7 +1,7 @@
 # SnAKe
 Repository that includes the code for the paper: ["SnAKe: Bayesian Optimization with Pathwise Exploration"](https://arxiv.org/abs/2202.00060). The paper was published in NeurIPS 2022. Please cite as:
 
-- Folch, Jose Pablo, Shiqiang Zhang, Robert M. Lee, Behrang Shafei, David Walz, Calvin Tsay, Mark van der Wilk, and Ruth Misener. "SnAKe: Bayesian Optimization with Pathwise Exploration." Advances in Neural Information Systems 35 (2022): 35226-35239.
+- Folch, Jose Pablo, Shiqiang Zhang, Robert M. Lee, Behrang Shafei, David Walz, Calvin Tsay, Mark van der Wilk, and Ruth Misener. "SnAKe: Bayesian Optimization with Pathwise Exploration." Advances in Neural Information Processing Systems 35 (2022): 35226-35239.
 
 The BibTeX reference is:
 
